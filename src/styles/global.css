@@ -3,40 +3,41 @@
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Mono", "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
 }
 
-/* Dark is the default look (also what visitors without JS get) */
+/* Dark is the default look (also what visitors without JS get). Catppuccin Macchiato with the green accent. */
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e1110;
-  --panel: #161b18;
-  --ink: #dce4dd;
-  --muted: #9ca79e;
-  --faint: #7d8880;
-  --rule: #29312c;
-  --accent: #7ee2a0;
-  --accent-bg: #153522;
-  --warn: #e8bd6c;
-  --warn-bg: #36290f;
-  --focus: #7ee2a0;
-  --selection: #234d34;
-  --img-border: #2c3530;
+  --bg: #24273a;          /* Base */
+  --panel: #363a4f;       /* Surface 0 */
+  --ink: #cad3f5;         /* Text */
+  --muted: #a5adcb;       /* Subtext 0 */
+  --faint: #939ab7;       /* Overlay 2 */
+  --rule: #494d64;        /* Surface 1 */
+  --accent: #a6da95;      /* Green */
+  --accent-bg: #3b474a;   /* Green 18% over Base */
+  --warn: #eed49f;        /* Yellow */
+  --warn-bg: #44434a;     /* Yellow 16% over Base */
+  --focus: #a6da95;
+  --selection: #454a60;   /* Overlay 2 30% over Base */
+  --img-border: #494d64;  /* Surface 1 */
 }
 
+/* Light: Catppuccin Latte, with faint, accent and warn darkened until they pass WCAG AA */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f5f0;
-  --panel: #ebebe3;
-  --ink: #1b1f1c;
-  --muted: #535b55;
-  --faint: #636b65;
-  --rule: #d4d5cc;
-  --accent: #136833;
-  --accent-bg: #d8eddc;
-  --warn: #7d4a00;
-  --warn-bg: #f3e5cc;
-  --focus: #136833;
-  --selection: #c6e8cf;
-  --img-border: #d4d5cc;
+  --bg: #eff1f5;          /* Base */
+  --panel: #e6e9ef;       /* Mantle */
+  --ink: #4c4f69;         /* Text */
+  --muted: #5c5f77;       /* Subtext 1 */
+  --faint: #686b80;       /* Subtext 0, darkened to AA */
+  --rule: #ccd0da;        /* Surface 0 */
+  --accent: #2d701e;      /* Green, darkened to AA */
+  --accent-bg: #d3e4d5;   /* Green 16% over Base */
+  --warn: #8c5912;        /* Yellow, darkened to AA */
+  --warn-bg: #ece1d2;     /* Yellow 16% over Base */
+  --focus: #2d701e;
+  --selection: #d2d5dd;   /* Overlay 2 25% over Base */
+  --img-border: #ccd0da;  /* Surface 0 */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
