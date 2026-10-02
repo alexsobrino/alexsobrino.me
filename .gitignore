@@ -11,3 +11,13 @@ Thumbs.db
 # Environment
 .env
 .env.*
+
+# Dependencies
+node_modules/
+
+# Astro
+dist/
+.astro/
+
+# Vercel
+.vercel/

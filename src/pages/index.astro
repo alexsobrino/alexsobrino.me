@@ -1,0 +1,62 @@
+---
+import { getCollection } from 'astro:content';
+import PromptBar from '../components/PromptBar.astro';
+import SideProjectList from '../components/SideProjectList.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatDate, getNotesNewestFirst } from '../lib';
+
+// Running Side Projects first, Retired ones after.
+const sideProjects = (await getCollection('sideProjects')).sort(
+  (a, b) => Number(a.data.retired) - Number(b.data.retired) || a.data.name.localeCompare(b.data.name),
+);
+const latestNotes = (await getNotesNewestFirst()).slice(0, 5);
+const year = new Date().getFullYear();
+---
+
+<BaseLayout>
+  <header class="intro">
+    <PromptBar command="whoami" />
+    <h1 class="intro__name">Alex Sobrino</h1>
+    <p class="intro__bio">Ingeniero informático. CTO en Mallorca. En mis ratos libres construyo cosas para aprender.</p>
+  </header>
+
+  <main>
+    {
+      sideProjects.length > 0 && (
+        <section class="section" aria-labelledby="projects-title">
+          <h2 class="section__title" id="projects-title">Proyectos personales</h2>
+          <SideProjectList projects={sideProjects} />
+        </section>
+      )
+    }
+
+    {
+      latestNotes.length > 0 && (
+        <section class="section" aria-labelledby="notes-title">
+          <h2 class="section__title" id="notes-title">Notas</h2>
+          <ul class="notes">
+            {latestNotes.map((note) => (
+              <li class="note" lang={note.data.lang}>
+                <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+                <a href={`/notes/${note.id}/`}>{note.data.title}</a>
+              </li>
+            ))}
+          </ul>
+          <a class="more" href="/notes/">Todas las notas →</a>
+        </section>
+      )
+    }
+  </main>
+
+  <footer class="contact">
+    <h2 class="section__title">Contacto</h2>
+    <dl class="contact__list">
+      <dt>email</dt><dd><a href="mailto:hola@alexsobrino.me">hola@alexsobrino.me</a></dd>
+      <dt>github</dt><dd><a href="https://github.com/alexsobrino">alexsobrino</a></dd>
+      <dt>linkedin</dt><dd><a href="https://www.linkedin.com/in/alejandro-sobrino/">alejandro-sobrino</a></dd>
+      <dt>x</dt><dd><a href="https://x.com/alexsobrino">@alexsobrino</a></dd>
+      <dt>rss</dt><dd><a href="/rss.xml">/rss.xml</a></dd>
+    </dl>
+    <p class="colophon">© {year} Alex Sobrino · hecho a mano</p>
+  </footer>
+</BaseLayout>

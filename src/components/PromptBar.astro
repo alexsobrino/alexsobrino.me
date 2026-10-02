@@ -1,0 +1,14 @@
+---
+// The terminal-style prompt line at the top of every page, with the theme toggle.
+interface Props {
+  path?: string;
+  command: string;
+}
+
+const { path = '', command } = Astro.props;
+---
+
+<div class="intro__bar">
+  <p class="prompt" aria-hidden="true"><span class="prompt__sign">~{path} $</span> {command}</p>
+  <button type="button" class="theme-toggle" aria-pressed="false" hidden>tema claro</button>
+</div>

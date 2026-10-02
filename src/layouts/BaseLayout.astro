@@ -1,0 +1,62 @@
+---
+import Analytics from '@vercel/analytics/astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = 'Alex Sobrino' } = Astro.props;
+const fullTitle = title ? `${title} · Alex Sobrino` : 'Alex Sobrino';
+---
+
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <script is:inline>
+      /* Set the theme before first paint. Dark unless the visitor chose light. */
+      (function () {
+        var t = 'dark';
+        try { if (localStorage.getItem('theme') === 'light') t = 'light'; } catch (e) {}
+        document.documentElement.setAttribute('data-theme', t);
+        var m = document.querySelector('meta[name="color-scheme"]');
+        if (m) m.setAttribute('content', t);
+      })();
+    </script>
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <link rel="alternate" type="application/rss+xml" title="Notas · Alex Sobrino" href="/rss.xml" />
+  </head>
+  <body>
+    <div class="page">
+      <slot />
+    </div>
+    <script is:inline>
+      /* Wire up the theme toggle. Without JS the button stays hidden and the page is dark. */
+      (function () {
+        var btn = document.querySelector('.theme-toggle');
+        if (!btn) return;
+        var root = document.documentElement;
+        var meta = document.querySelector('meta[name="color-scheme"]');
+        function sync() {
+          btn.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'light' ? 'true' : 'false');
+        }
+        btn.addEventListener('click', function () {
+          var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+          root.setAttribute('data-theme', next);
+          if (meta) meta.setAttribute('content', next);
+          try { localStorage.setItem('theme', next); } catch (e) {}
+          sync();
+        });
+        sync();
+        btn.hidden = false;
+      })();
+    </script>
+    <Analytics />
+  </body>
+</html>

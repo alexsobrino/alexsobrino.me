@@ -1,0 +1,29 @@
+---
+import PromptBar from '../../components/PromptBar.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate, getNotesNewestFirst } from '../../lib';
+
+const notes = await getNotesNewestFirst();
+---
+
+<BaseLayout title="Notas">
+  <PromptBar path="/notes" command="ls" />
+  <p class="back"><a href="/">← inicio</a></p>
+  <main>
+    <h1 class="page-title">Notas</h1>
+    {
+      notes.length === 0 ? (
+        <p class="empty">Todavía no hay notas.</p>
+      ) : (
+        <ul class="notes prose">
+          {notes.map((note) => (
+            <li class="note" lang={note.data.lang}>
+              <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+              <a href={`/notes/${note.id}/`}>{note.data.title}</a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+</BaseLayout>
