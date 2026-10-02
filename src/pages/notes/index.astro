@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { formatDate, getNotesNewestFirst } from '../../lib';
+
+const notes = await getNotesNewestFirst();
+---
+
+<BaseLayout title="Notas">
+  <main>
+    <p><a href="/">← Inicio</a></p>
+    <h1>Notas</h1>
+    {
+      notes.length === 0 ? (
+        <p>Todavía no hay notas.</p>
+      ) : (
+        <ul>
+          {notes.map((note) => (
+            <li lang={note.data.lang}>
+              <a href={`/notes/${note.id}/`}>{note.data.title}</a>
+              <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+</BaseLayout>

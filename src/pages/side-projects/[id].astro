@@ -1,0 +1,27 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('sideProjects');
+  return projects.map((project) => ({ params: { id: project.id }, props: { project } }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+---
+
+<BaseLayout title={project.data.name} description={project.data.summary}>
+  <main>
+    <article lang={project.data.lang}>
+      <p><a href="/">← Inicio</a></p>
+      <h1>{project.data.name}</h1>
+      <p>{project.data.summary}</p>
+      {project.data.retired && <p>Retirado</p>}
+      <Image src={project.data.image} alt={project.data.imageAlt} widths={[720, 1440]} sizes="(min-width: 720px) 720px, 100vw" />
+      <Content />
+      {project.data.url && <p><a href={project.data.url}>Visitar {project.data.name} →</a></p>}
+    </article>
+  </main>
+</BaseLayout>
