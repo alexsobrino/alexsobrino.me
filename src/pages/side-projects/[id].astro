@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import { getCollection, render } from 'astro:content';
+import PromptBar from '../../components/PromptBar.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 export async function getStaticPaths() {
@@ -10,18 +11,27 @@ export async function getStaticPaths() {
 
 const { project } = Astro.props;
 const { Content } = await render(project);
+const { name, summary, image, imageAlt, url, retired, lang } = project.data;
 ---
 
-<BaseLayout title={project.data.name} description={project.data.summary}>
+<BaseLayout title={name} description={summary}>
+  <PromptBar path="/side-projects" command={`cat ${project.id}`} />
+  <p class="back"><a href="/">← inicio</a></p>
   <main>
-    <article lang={project.data.lang}>
-      <p><a href="/">← Inicio</a></p>
-      <h1>{project.data.name}</h1>
-      <p>{project.data.summary}</p>
-      {project.data.retired && <p>Retirado</p>}
-      <Image src={project.data.image} alt={project.data.imageAlt} widths={[720, 1440]} sizes="(min-width: 720px) 720px, 100vw" />
-      <Content />
-      {project.data.url && <p><a href={project.data.url}>Visitar {project.data.name} →</a></p>}
+    <article lang={lang}>
+      <h1 class="page-title">{name}</h1>
+      <p class="page-lede">{summary}</p>
+      <p class="page-meta">
+        <span class:list={['project__status', { 'project__status--retired': retired }]}>{retired ? '○ retirado' : '● activo'}</span>
+        {url && <a href={url}>{new URL(url).host}</a>}
+      </p>
+      <figure class="page-figure">
+        <Image src={image} alt={imageAlt} widths={[720, 1440]} sizes="(min-width: 46rem) 44rem, 100vw" />
+      </figure>
+      <div class="prose">
+        <Content />
+      </div>
+      {url && <p class="outbound"><a href={url}>Visitar {name} →</a></p>}
     </article>
   </main>
 </BaseLayout>

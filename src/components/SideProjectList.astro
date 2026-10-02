@@ -1,0 +1,29 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  projects: CollectionEntry<'sideProjects'>[];
+}
+
+const { projects } = Astro.props;
+---
+
+<ul class="projects">
+  {
+    projects.map((project) => (
+      <li class:list={['project', { 'project--retired': project.data.retired }]} lang={project.data.lang}>
+        <figure class="project__media">
+          <Image src={project.data.image} alt={project.data.imageAlt} widths={[208, 416]} sizes="9.5rem" />
+        </figure>
+        <div>
+          <h3 class="project__name">
+            <a class="project__link" href={`/side-projects/${project.id}/`}>{project.id}</a>
+          </h3>
+          <p class="project__desc">{project.data.summary}</p>
+        </div>
+        <span class="project__status">{project.data.retired ? '○ retirado' : '● activo'}</span>
+      </li>
+    ))
+  }
+</ul>
