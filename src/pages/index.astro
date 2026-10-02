@@ -29,15 +29,6 @@ const year = new Date().getFullYear();
 
   <main>
     {
-      sideProjects.length > 0 && (
-        <section class="section" aria-labelledby="projects-title">
-          <h2 class="section__title" id="projects-title">Proyectos personales</h2>
-          <SideProjectList projects={sideProjects} />
-        </section>
-      )
-    }
-
-    {
       latestNotes.length > 0 && (
         <section class="section" aria-labelledby="notes-title">
           <h2 class="section__title" id="notes-title">Notas</h2>
@@ -50,6 +41,15 @@ const year = new Date().getFullYear();
             ))}
           </ul>
           <a class="more" href="/notes/">Todas las notas →</a>
+        </section>
+      )
+    }
+
+    {
+      sideProjects.length > 0 && (
+        <section class="section" aria-labelledby="projects-title">
+          <h2 class="section__title" id="projects-title">Proyectos personales</h2>
+          <SideProjectList projects={sideProjects} />
         </section>
       )
     }
