@@ -3,8 +3,10 @@ import { existsSync } from 'node:fs';
 import { before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import config from '../astro.config.mjs';
+import { siteLanguage } from '../src/site-language.ts';
 import { findBrokenLinks } from './built-site.ts';
 import { readContent, type Content } from './content.ts';
+import { findLanguageProblems, findPromptProblems, type PageProblem } from './pages.ts';
 
 // The built site, as `npm run build` leaves it, and the content it was built from.
 const buildDir = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -25,3 +27,20 @@ test('every internal link and asset reference points to something in the build',
     `Broken internal links:\n${broken.map(({ page, link }) => `  on ${page}: ${link}`).join('\n')}`,
   );
 });
+
+test('every inner page has the prompt its URL says it should', async () => {
+  const problems = await findPromptProblems(buildDir);
+
+  assert.deepEqual(problems, [], `Wrong prompts:\n${listed(problems)}`);
+});
+
+test('every page is in the site language, and every Note and Side Project in its own Content language', async () => {
+  const problems = await findLanguageProblems(buildDir, siteLanguage, content);
+
+  assert.deepEqual(problems, [], `Wrong languages:\n${listed(problems)}`);
+});
+
+/** One line per problem, naming its page. */
+function listed(problems: PageProblem[]): string {
+  return problems.map(({ page, message }) => `  on ${page}: ${message}`).join('\n');
+}
