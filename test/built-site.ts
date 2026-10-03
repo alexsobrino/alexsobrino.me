@@ -35,7 +35,8 @@ function references(element: HTMLElement): string[] {
   ];
 }
 
-async function htmlFiles(dir: string): Promise<string[]> {
+/** Every built HTML file, by its path. */
+export async function htmlFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith('.html'))
@@ -43,12 +44,12 @@ async function htmlFiles(dir: string): Promise<string[]> {
 }
 
 /** The URL a built file is served at: `notes/index.html` is `/notes/`. */
-function pageUrl(file: string): string {
+export function pageUrl(file: string): string {
   return '/' + file.split(sep).join('/').replace(/(^|\/)index\.html$/, '$1');
 }
 
 /** Whether the build serves something at this path: a file, or a folder's `index.html`. */
-async function isBuilt(buildDir: string, pathname: string): Promise<boolean> {
+export async function isBuilt(buildDir: string, pathname: string): Promise<boolean> {
   const path = join(buildDir, pathname);
   return (await isFile(path)) || (await isFile(join(path, 'index.html')));
 }
