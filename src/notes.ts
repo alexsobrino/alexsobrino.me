@@ -44,16 +44,28 @@ export async function getNotesNewestFirst() {
   return notes.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 }
 
-// Static paths for the Tag pages; they must produce the URLs tagUrl() links to.
-// Each lists its Notes newest first, and a Tag with no Notes gets no page.
-export async function getTagPaths() {
+// Every Tag that has Notes, each with its Notes newest first. A Tag with no Notes is left out.
+async function getTagsWithNotes() {
   const notes = await getNotesNewestFirst();
   // Notes share one object per Tag, so a Set gathers each Tag once.
   const tags = new Set(notes.flatMap((note) => note.tags));
-  return [...tags].map((tag) => ({
-    params: { id: tag.id },
-    props: { tag, notes: notes.filter((note) => note.tags.includes(tag)) },
-  }));
+  return [...tags].map((tag) => ({ tag, notes: notes.filter((note) => note.tags.includes(tag)) }));
+}
+
+// Static paths for the Tag pages; they must produce the URLs tagUrl() links to.
+// Each lists its Notes newest first, and a Tag with no Notes gets no page.
+export async function getTagPaths() {
+  const tags = await getTagsWithNotes();
+  return tags.map(({ tag, notes }) => ({ params: { id: tag.id }, props: { tag, notes } }));
+}
+
+// Every Tag that has a page, by name in the site language (so accents sort in place), with how
+// many Notes it gathers.
+export async function getTagsAlphabetically() {
+  const tags = await getTagsWithNotes();
+  return tags
+    .map(({ tag, notes }) => ({ tag, noteCount: notes.length }))
+    .sort((a, b) => a.tag.data.name.localeCompare(b.tag.data.name, siteLanguage));
 }
 
 export function formatDate(date: Date) {

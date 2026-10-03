@@ -1,0 +1,30 @@
+---
+import InnerPageLayout from '../../../layouts/InnerPageLayout.astro';
+import { getTagsAlphabetically, tagUrl } from '../../../notes';
+
+const tags = await getTagsAlphabetically();
+---
+
+<InnerPageLayout title="Etiquetas" command="ls" back={{ href: '/notes/', label: 'notas' }}>
+  <h1 class="page-title">Etiquetas</h1>
+  {
+    tags.length === 0 ? (
+      <p class="empty">Todavía no hay etiquetas.</p>
+    ) : (
+      <ul class="tags prose">
+        {tags.map(({ tag, noteCount }) => (
+          <li class="tag">
+            <a href={tagUrl(tag)}>{tag.data.name}</a> <span class="tag__count">· {noteCount}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</InnerPageLayout>
+
+<style>
+  /* One Tag per row, like the Notes listing, its Note count faint after it */
+  .tags { list-style: none; padding: 0; }
+  .tag { padding: 0.3rem 0; }
+  .tag__count { color: var(--faint); }
+</style>
