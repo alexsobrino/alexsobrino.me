@@ -16,7 +16,7 @@ export async function getSideProjectPaths() {
 }
 
 // Running Side Projects first, Retired ones after, each group by name.
-export async function getSideProjects() {
+export async function getSideProjectsRunningFirst() {
   const sideProjects = await getCollection('sideProjects');
   return sideProjects.sort(
     (a, b) => Number(a.data.retired) - Number(b.data.retired) || a.data.name.localeCompare(b.data.name),

@@ -12,10 +12,10 @@ const { sideProject, class: className } = Astro.props;
 const { retired } = sideProject.data;
 ---
 
-<span class:list={['status', { 'status--retired': retired }, className]}>{retired ? '○ retirado' : '● activo'}</span>
+<span class:list={['side-project-status', { 'side-project-status--retired': retired }, className]}>{retired ? '○ retirado' : '● activo'}</span>
 
 <style is:global>
-  .status {
+  .side-project-status {
     font-size: 0.75rem;
     line-height: 1;
     padding: 0.35em 0.6em;
@@ -24,5 +24,5 @@ const { retired } = sideProject.data;
     color: var(--accent);
     background: var(--accent-bg);
   }
-  .status--retired { color: var(--warn); background: var(--warn-bg); }
+  .side-project-status--retired { color: var(--warn); background: var(--warn-bg); }
 </style>

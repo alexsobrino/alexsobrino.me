@@ -1,14 +1,14 @@
 ---
 import { Image } from 'astro:assets';
 import photo from '../assets/alex.jpg';
-import PromptBar from '../components/PromptBar.astro';
 import NoteList from '../components/NoteList.astro';
+import PromptBar from '../components/PromptBar.astro';
 import SideProjectList from '../components/SideProjectList.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getNotesNewestFirst } from '../notes';
-import { getSideProjects } from '../side-projects';
+import { getSideProjectsRunningFirst } from '../side-projects';
 
-const sideProjects = await getSideProjects();
+const sideProjects = await getSideProjectsRunningFirst();
 const latestNotes = (await getNotesNewestFirst()).slice(0, 5);
 const year = new Date().getFullYear();
 ---

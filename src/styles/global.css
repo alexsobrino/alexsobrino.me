@@ -79,8 +79,6 @@ a:hover { color: var(--accent); text-decoration-color: currentColor; }
 }
 .prompt__sign { color: var(--accent); }
 
-/* The theme toggle is styled in theme-toggle/ThemeToggle */
-
 /* --- Intro --- */
 .intro { margin-bottom: 3.5rem; }
 /* Photo beside name and bio, side by side at every width */
@@ -120,7 +118,7 @@ a:hover { color: var(--accent); text-decoration-color: currentColor; }
 .section__title { margin: 0 0 1rem; font-size: 0.9375rem; font-weight: 700; }
 .section__title::before { content: "## "; color: var(--faint); font-weight: 400; }
 
-/* --- Notes (the list itself is styled in NoteList) --- */
+/* --- Notes --- */
 .more { color: var(--accent); }
 
 /* --- Contact --- */
