@@ -1,9 +1,8 @@
 ---
 import { Image } from 'astro:assets';
 import { render } from 'astro:content';
-import PromptBar from '../../components/PromptBar.astro';
 import SideProjectStatus from '../../components/SideProjectStatus.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
 import { getSideProjectPaths } from '../../side-projects';
 
 export const getStaticPaths = getSideProjectPaths;
@@ -13,24 +12,20 @@ const { Content } = await render(sideProject);
 const { name, summary, image, imageAlt, url, lang } = sideProject.data;
 ---
 
-<BaseLayout title={name} description={summary}>
-  <PromptBar path="/side-projects" command={`cat ${sideProject.id}`} />
-  <p class="back"><a href="/">← inicio</a></p>
-  <main>
-    <article lang={lang}>
-      <h1 class="page-title">{name}</h1>
-      <p class="page-lede">{summary}</p>
-      <p class="page-meta">
-        <SideProjectStatus sideProject={sideProject} />
-        {url && <a href={url}>{new URL(url).host}</a>}
-      </p>
-      <figure class="page-figure">
-        <Image src={image} alt={imageAlt} widths={[720, 1440]} sizes="(min-width: 46rem) 44rem, 100vw" />
-      </figure>
-      <div class="prose">
-        <Content />
-      </div>
-      {url && <p class="outbound"><a href={url}>Visitar {name} →</a></p>}
-    </article>
-  </main>
-</BaseLayout>
+<InnerPageLayout title={name} description={summary} command="cat" back={{ href: '/', label: 'inicio' }}>
+  <article lang={lang}>
+    <h1 class="page-title">{name}</h1>
+    <p class="page-lede">{summary}</p>
+    <p class="page-meta">
+      <SideProjectStatus sideProject={sideProject} />
+      {url && <a href={url}>{new URL(url).host}</a>}
+    </p>
+    <figure class="page-figure">
+      <Image src={image} alt={imageAlt} widths={[720, 1440]} sizes="(min-width: 46rem) 44rem, 100vw" />
+    </figure>
+    <div class="prose">
+      <Content />
+    </div>
+    {url && <p class="outbound"><a href={url}>Visitar {name} →</a></p>}
+  </article>
+</InnerPageLayout>
