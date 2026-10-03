@@ -30,6 +30,21 @@ const content: Content = {
   sideProjects: [{ id: 'sub9bar', lang: 'es' }],
 };
 
+/** The Tags listing as the page renders it: one item per Tag, its name linking to its page, then its Note count. */
+function tagListing(items: { name: string; href?: string; count: number }[]): string {
+  const listed = items.map(({ name, href, count }) =>
+    href === undefined ? `<li>${name} · ${count}</li>` : `<li><a href="${href}">${name}</a> <span>· ${count}</span></li>`,
+  );
+  return `<html lang="es"><body><main><h1 class="page-title">Etiquetas</h1><ul>${listed.join('')}</ul></main></body></html>`;
+}
+
+// "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
+const taggedNotes: ContentNote[] = [
+  { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes'], lang: 'es' },
+  { id: 'etica', date: new Date('2026-09-01'), tags: ['Zen', 'Ética', 'Un libro al mes'], lang: 'es' },
+  { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
+];
+
 test('accepts inner pages whose prompt reads as their URL says, and skips other pages', async () => {
   const dir = await fakeFolder({
     'index.html': prompt('~ $', 'whoami'),
@@ -198,24 +213,9 @@ test('reports a Note page with no meta line, or with no such Note in the content
   ]);
 });
 
-/** The Tags listing as the page renders it: one item per Tag, its name linking to its page, then its Note count. */
-function tagList(items: { name: string; href?: string; count: number }[]): string {
-  const listed = items.map(({ name, href, count }) =>
-    href === undefined ? `<li>${name} · ${count}</li>` : `<li><a href="${href}">${name}</a> <span>· ${count}</span></li>`,
-  );
-  return `<html lang="es"><body><main><h1 class="page-title">Etiquetas</h1><ul>${listed.join('')}</ul></main></body></html>`;
-}
-
-// "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
-const taggedNotes: ContentNote[] = [
-  { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes'], lang: 'es' },
-  { id: 'etica', date: new Date('2026-09-01'), tags: ['Zen', 'Ética', 'Un libro al mes'], lang: 'es' },
-  { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
-];
-
 test('accepts a Tags listing with every Tag that has Notes, by name, each with its Note count, linking to its page', async () => {
   const dir = await fakeFolder({
-    'notes/tags/index.html': tagList([
+    'notes/tags/index.html': tagListing([
       { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
       { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 2 },
       { name: 'Zen', href: '/notes/tags/zen/', count: 1 },
@@ -236,7 +236,7 @@ test('reports a build with no Tags listing', async () => {
 
 test('reports a Tags listing that leaves out a Tag, lists one with no Notes, is out of order or miscounts', async () => {
   const dir = await fakeFolder({
-    'notes/tags/index.html': tagList([
+    'notes/tags/index.html': tagListing([
       { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 1 },
       { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
       { name: 'Sin notas', href: '/notes/tags/sin-notas/', count: 0 },
@@ -257,7 +257,7 @@ test('reports a Tags listing that leaves out a Tag, lists one with no Notes, is 
 
 test('reports a Tag that does not link to its own Tag page', async () => {
   const dir = await fakeFolder({
-    'notes/tags/index.html': tagList([
+    'notes/tags/index.html': tagListing([
       { name: 'Ética', href: '/notes/tags/zen/', count: 1 },
       { name: 'Un libro al mes', href: '/notes/tags/nada/', count: 2 },
       { name: 'Zen', count: 1 },

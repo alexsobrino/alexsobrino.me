@@ -10,6 +10,9 @@ export type PageProblem = { page: string; message: string };
 /** An inner page, as its URL says it should be: its prompt, and the Note or Side Project it shows. */
 type InnerPage = { prompt: string; piece?: { kind: 'Note' | 'Side Project'; id: string } };
 
+/** A Tag page's URL, /notes/tags/<id>/. */
+const tagPageUrl = /^\/notes\/tags\/([^/]+)\/$/;
+
 /** Every inner page whose prompt is missing or doesn't read as its URL says it should. */
 export async function findPromptProblems(buildDir: string): Promise<PageProblem[]> {
   const problems: PageProblem[] = [];
@@ -54,12 +57,7 @@ export async function findLanguageProblems(buildDir: string, siteLanguage: strin
 export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]): Promise<PageProblem[]> {
   const problems: PageProblem[] = [];
   const pages = await builtPages(buildDir);
-  // Each Tag page's title by its URL, to check a Tag links to its own page.
-  const tagPages = new Map(
-    pages
-      .filter(({ page }) => /^\/notes\/tags\/[^/]+\/$/.test(page))
-      .map(({ page, html }) => [page, textOf(html.querySelector('.page-title'))]),
-  );
+  const tagPages = tagPageTitles(pages);
   for (const { page, html } of pages) {
     const piece = innerPage(page)?.piece;
     if (piece?.kind !== 'Note') continue;
@@ -70,7 +68,7 @@ export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]
     }
     const meta = html.querySelector('.page-meta');
     if (meta === null) {
-      problems.push({ page, message: `no meta line, expected the date then ${tagList(note.tags)}` });
+      problems.push({ page, message: `no meta line, expected the date then ${describeTags(note.tags)}` });
       continue;
     }
     const actual = textOf(meta);
@@ -82,7 +80,7 @@ export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]
     const links = meta.querySelectorAll('a');
     const linked = links.map(textOf);
     if (!isDeepStrictEqual(linked, note.tags)) {
-      problems.push({ page, message: `meta line links to ${tagList(linked)}, expected ${tagList(note.tags)}` });
+      problems.push({ page, message: `meta line links to ${describeTags(linked)}, expected ${describeTags(note.tags)}` });
       continue;
     }
     for (const link of links) {
@@ -99,8 +97,8 @@ export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]
 /** Everything wrong with the Tags listing, checked against the Notes: it should list every Tag that has Notes, by name, each with its Note count and linking to its Tag page. */
 export async function findTagListProblems(buildDir: string, siteLanguage: string, notes: ContentNote[]): Promise<PageProblem[]> {
   const page = '/notes/tags/';
-  const pages = new Map((await builtPages(buildDir)).map((built) => [built.page, built.html]));
-  const html = pages.get(page);
+  const pages = await builtPages(buildDir);
+  const html = pages.find((built) => built.page === page)?.html;
   if (html === undefined) return [{ page, message: 'is not in the build' }];
 
   // A Note counts once for each Tag it lists.
@@ -111,8 +109,9 @@ export async function findTagListProblems(buildDir: string, siteLanguage: string
     .map(([name, count]) => `${name} · ${count}`);
 
   const problems: PageProblem[] = [];
+  const tagPages = tagPageTitles(pages);
   const items = html.querySelectorAll('main li');
-  const listed = items.map((item) => textOf(item));
+  const listed = items.map(textOf);
   if (!isDeepStrictEqual(listed, expected)) {
     problems.push({ page, message: `lists ${JSON.stringify(listed)}, expected ${JSON.stringify(expected)}` });
   }
@@ -122,19 +121,24 @@ export async function findTagListProblems(buildDir: string, siteLanguage: string
       problems.push({ page, message: `"${textOf(item)}" has no link` });
       continue;
     }
-    // A Tag page is at /notes/tags/<id>/ and headed with its Tag's name.
     const name = textOf(link);
-    const href = link.getAttribute('href') ?? '';
-    const heading = pages.get(href)?.querySelector('.page-title');
-    if (!/^\/notes\/tags\/[^/]+\/$/.test(href) || !heading || textOf(heading) !== name) {
+    const href = decodeURIComponent(link.getAttribute('href') ?? '');
+    if (tagPages.get(href) !== name) {
       problems.push({ page, message: `"${name}" links to ${href}, which is not its Tag page` });
     }
   }
   return problems;
 }
 
+/** Each Tag page's title by its URL, to check a Tag links to its own page. */
+function tagPageTitles(pages: { page: string; html: HTMLElement }[]): Map<string, string> {
+  return new Map(
+    pages.filter(({ page }) => tagPageUrl.test(page)).map(({ page, html }) => [page, textOf(html.querySelector('.page-title'))]),
+  );
+}
+
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
-function tagList(names: string[]): string {
+function describeTags(names: string[]): string {
   return names.length === 0 ? 'no Tags' : `Tags ${names.map((name) => `"${name}"`).join(', ')}`;
 }
 
@@ -166,7 +170,7 @@ async function builtPages(buildDir: string): Promise<{ page: string; html: HTMLE
 function innerPage(page: string): InnerPage | undefined {
   if (page === '/notes/') return { prompt: '~/notes $ ls' };
   if (page === '/notes/tags/') return { prompt: '~/notes/tags $ ls' };
-  const tag = page.match(/^\/notes\/tags\/([^/]+)\/$/)?.[1];
+  const tag = page.match(tagPageUrl)?.[1];
   if (tag !== undefined) return { prompt: `~/notes/tags/${tag} $ ls` };
   const note = page.match(/^\/notes\/([^/]+)\/$/)?.[1];
   if (note !== undefined) return { prompt: `~/notes $ cat ${note}`, piece: { kind: 'Note', id: note } };
