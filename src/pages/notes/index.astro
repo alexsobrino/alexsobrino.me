@@ -8,6 +8,7 @@ const notes = await getNotesNewestFirst();
 
 <InnerPageLayout title="Notas" command="ls" back={{ href: '/', label: 'inicio' }}>
   <h1 class="page-title">Notas</h1>
+  <p class="page-meta"><a href="/notes/tags/">Por etiqueta</a></p>
   {
     notes.length === 0 ? (
       <p class="empty">Todavía no hay notas.</p>

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Content } from './content.ts';
+import type { Content, ContentNote } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
-import { findLanguageProblems, findNoteTagProblems, findPromptProblems } from './pages.ts';
+import { findLanguageProblems, findNoteTagProblems, findPromptProblems, findTagListProblems } from './pages.ts';
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
 function prompt(sign: string, command: string): string {
@@ -36,6 +36,7 @@ test('accepts inner pages whose prompt reads as their URL says, and skips other 
     '404.html': '<h1>No encontrado</h1>',
     'notes/index.html': prompt('~/notes $', 'ls'),
     'notes/reto/index.html': prompt('~/notes $', 'cat reto'),
+    'notes/tags/index.html': prompt('~/notes/tags $', 'ls'),
     'notes/tags/un-libro-al-mes/index.html': prompt('~/notes/tags/un-libro-al-mes $', 'ls'),
     'side-projects/sub9bar/index.html': prompt('~/side-projects $', 'cat sub9bar'),
   });
@@ -73,6 +74,7 @@ test('accepts pages in the site language, with each Note and Side Project in its
     'index.html': '<html lang="es"><body></body></html>',
     'notes/index.html': '<html lang="es"><body></body></html>',
     'notes/reto/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
+    'notes/tags/index.html': '<html lang="es"><body></body></html>',
     'notes/tags/un-libro-al-mes/index.html': '<html lang="es"><body></body></html>',
     'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
   });
@@ -193,5 +195,79 @@ test('reports a Note page with no meta line, or with no such Note in the content
   assert.deepEqual(await findNoteTagProblems(dir, content.notes), [
     { page: '/notes/otro/', message: 'no Note "otro" in the content' },
     { page: '/notes/reto/', message: 'no meta line, expected the date then Tags "Un libro al mes"' },
+  ]);
+});
+
+/** The Tags listing as the page renders it: one item per Tag, its name linking to its page, then its Note count. */
+function tagList(items: { name: string; href?: string; count: number }[]): string {
+  const listed = items.map(({ name, href, count }) =>
+    href === undefined ? `<li>${name} · ${count}</li>` : `<li><a href="${href}">${name}</a> <span>· ${count}</span></li>`,
+  );
+  return `<html lang="es"><body><main><h1 class="page-title">Etiquetas</h1><ul>${listed.join('')}</ul></main></body></html>`;
+}
+
+// "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
+const taggedNotes: ContentNote[] = [
+  { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes'], lang: 'es' },
+  { id: 'etica', date: new Date('2026-09-01'), tags: ['Zen', 'Ética', 'Un libro al mes'], lang: 'es' },
+  { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
+];
+
+test('accepts a Tags listing with every Tag that has Notes, by name, each with its Note count, linking to its page', async () => {
+  const dir = await fakeFolder({
+    'notes/tags/index.html': tagList([
+      { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
+      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 2 },
+      { name: 'Zen', href: '/notes/tags/zen/', count: 1 },
+    ]),
+    'notes/tags/etica/index.html': tagPage('Ética'),
+    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
+    'notes/tags/zen/index.html': tagPage('Zen'),
+  });
+
+  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), []);
+});
+
+test('reports a build with no Tags listing', async () => {
+  assert.deepEqual(await findTagListProblems(await fakeFolder({}), siteLanguage, taggedNotes), [
+    { page: '/notes/tags/', message: 'is not in the build' },
+  ]);
+});
+
+test('reports a Tags listing that leaves out a Tag, lists one with no Notes, is out of order or miscounts', async () => {
+  const dir = await fakeFolder({
+    'notes/tags/index.html': tagList([
+      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 1 },
+      { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
+      { name: 'Sin notas', href: '/notes/tags/sin-notas/', count: 0 },
+    ]),
+    'notes/tags/etica/index.html': tagPage('Ética'),
+    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
+    'notes/tags/sin-notas/index.html': tagPage('Sin notas'),
+  });
+
+  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), [
+    {
+      page: '/notes/tags/',
+      message:
+        'lists ["Un libro al mes · 1","Ética · 1","Sin notas · 0"], expected ["Ética · 1","Un libro al mes · 2","Zen · 1"]',
+    },
+  ]);
+});
+
+test('reports a Tag that does not link to its own Tag page', async () => {
+  const dir = await fakeFolder({
+    'notes/tags/index.html': tagList([
+      { name: 'Ética', href: '/notes/tags/zen/', count: 1 },
+      { name: 'Un libro al mes', href: '/notes/tags/nada/', count: 2 },
+      { name: 'Zen', count: 1 },
+    ]),
+    'notes/tags/zen/index.html': tagPage('Zen'),
+  });
+
+  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), [
+    { page: '/notes/tags/', message: '"Ética" links to /notes/tags/zen/, which is not its Tag page' },
+    { page: '/notes/tags/', message: '"Un libro al mes" links to /notes/tags/nada/, which is not its Tag page' },
+    { page: '/notes/tags/', message: '"Zen · 1" has no link' },
   ]);
 });
