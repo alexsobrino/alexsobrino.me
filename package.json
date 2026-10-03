@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "test": "node --test 'test/**/*.test.ts'"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",
@@ -15,6 +16,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.19.1",
+    "node-html-parser": "^9.0.4",
     "typescript": "^6.0.3"
   },
   "engines": {
