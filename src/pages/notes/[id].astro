@@ -1,13 +1,10 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
 import PromptBar from '../../components/PromptBar.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { formatDate } from '../../lib';
+import { formatDate, getNotePaths } from '../../notes';
 
-export async function getStaticPaths() {
-  const notes = await getCollection('notes');
-  return notes.map((note) => ({ params: { id: note.id }, props: { note } }));
-}
+export const getStaticPaths = getNotePaths;
 
 const { note } = Astro.props;
 const { Content } = await render(note);

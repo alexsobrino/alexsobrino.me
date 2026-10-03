@@ -1,7 +1,8 @@
 ---
+import NoteList from '../../components/NoteList.astro';
 import PromptBar from '../../components/PromptBar.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { formatDate, getNotesNewestFirst } from '../../lib';
+import { getNotesNewestFirst } from '../../notes';
 
 const notes = await getNotesNewestFirst();
 ---
@@ -15,14 +16,7 @@ const notes = await getNotesNewestFirst();
       notes.length === 0 ? (
         <p class="empty">Todavía no hay notas.</p>
       ) : (
-        <ul class="notes prose">
-          {notes.map((note) => (
-            <li class="note" lang={note.data.lang}>
-              <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
-              <a href={`/notes/${note.id}/`}>{note.data.title}</a>
-            </li>
-          ))}
-        </ul>
+        <NoteList notes={notes} class="prose" />
       )
     }
   </main>
