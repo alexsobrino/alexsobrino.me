@@ -2,6 +2,7 @@
 import Analytics from '@vercel/analytics/astro';
 import '../styles/global.css';
 import ThemeHead from '../components/theme-toggle/ThemeHead.astro';
+import { siteLanguage } from '../site-language';
 
 interface Props {
   title?: string;
@@ -13,7 +14,7 @@ const fullTitle = title ? `${title} · Alex Sobrino` : 'Alex Sobrino';
 ---
 
 <!doctype html>
-<html lang="es" data-theme="dark">
+<html lang={siteLanguage} data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

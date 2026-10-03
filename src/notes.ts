@@ -1,4 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { siteLanguage } from './site-language';
 
 // Everything the site knows about presenting a Note: where it lives, its order and its date.
 
@@ -20,5 +21,5 @@ export async function getNotesNewestFirst() {
 }
 
 export function formatDate(date: Date) {
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  return date.toLocaleDateString(siteLanguage, { day: 'numeric', month: 'short', year: 'numeric' });
 }
