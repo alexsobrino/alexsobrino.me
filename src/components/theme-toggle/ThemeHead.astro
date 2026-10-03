@@ -1,0 +1,35 @@
+---
+// The theme toggle's part of <head>: sets the theme before first paint, then wires the ThemeToggle button.
+// Kept inline (not bundled) so the script blocks rendering until the theme is applied.
+---
+
+<meta name="color-scheme" content="dark" />
+<script is:inline>
+  /* Dark unless the visitor chose light. Without JS the button stays hidden and the page is dark. */
+  (function () {
+    var root = document.documentElement;
+    var meta = document.querySelector('meta[name="color-scheme"]');
+    var btn = null;
+    var theme = 'dark';
+    function apply(t) {
+      theme = t;
+      root.setAttribute('data-theme', t);
+      if (meta) meta.setAttribute('content', t);
+      if (btn) btn.setAttribute('aria-pressed', t === 'light' ? 'true' : 'false');
+    }
+    function wire() {
+      btn = document.querySelector('.theme-toggle');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        apply(theme === 'light' ? 'dark' : 'light');
+        try { localStorage.setItem('theme', theme); } catch (e) {}
+      });
+      apply(theme);
+      btn.hidden = false;
+    }
+    try { if (localStorage.getItem('theme') === 'light') theme = 'light'; } catch (e) {}
+    apply(theme);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+    else wire();
+  })();
+</script>

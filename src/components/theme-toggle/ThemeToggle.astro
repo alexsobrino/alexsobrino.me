@@ -1,0 +1,25 @@
+---
+// The theme toggle button. ThemeHead's script wires it up and un-hides it; without JS it stays hidden.
+---
+
+<button type="button" class="theme-toggle" aria-pressed="false" hidden>tema claro</button>
+
+<style is:global>
+  .theme-toggle {
+    font: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.2em 0.6em;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .theme-toggle[hidden] { display: none; }
+  .theme-toggle::before { content: "[ ] "; content: "[ ] " / ""; color: var(--faint); }
+  .theme-toggle[aria-pressed="true"]::before { content: "[x] "; content: "[x] " / ""; color: var(--accent); }
+  .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+</style>
