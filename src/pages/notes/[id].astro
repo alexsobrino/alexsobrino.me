@@ -1,7 +1,6 @@
 ---
 import { render } from 'astro:content';
-import PromptBar from '../../components/PromptBar.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
 import { formatDate, getNotePaths } from '../../notes';
 
 export const getStaticPaths = getNotePaths;
@@ -10,18 +9,14 @@ const { note } = Astro.props;
 const { Content } = await render(note);
 ---
 
-<BaseLayout title={note.data.title} description={note.data.description}>
-  <PromptBar path="/notes" command={`cat ${note.id}`} />
-  <p class="back"><a href="/notes/">← notas</a></p>
-  <main>
-    <article lang={note.data.lang}>
-      <h1 class="page-title">{note.data.title}</h1>
-      <p class="page-meta">
-        <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
-      </p>
-      <div class="prose">
-        <Content />
-      </div>
-    </article>
-  </main>
-</BaseLayout>
+<InnerPageLayout title={note.data.title} description={note.data.description} command="cat" back={{ href: '/notes/', label: 'notas' }}>
+  <article lang={note.data.lang}>
+    <h1 class="page-title">{note.data.title}</h1>
+    <p class="page-meta">
+      <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+    </p>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</InnerPageLayout>

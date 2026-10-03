@@ -1,0 +1,26 @@
+---
+import PromptBar from '../components/PromptBar.astro';
+import { innerPagePrompt, type InnerPageCommand } from '../inner-page';
+import BaseLayout from './BaseLayout.astro';
+
+// The shell of every page but the home page: the prompt bar, a back link and `main` for the content.
+// The page brings its own heading, since a Note or Side Project keeps it in its `<article>`.
+
+interface Props {
+  title: string;
+  description?: string;
+  command: InnerPageCommand;
+  back: { href: string; label: string };
+}
+
+const { title, description, command, back } = Astro.props;
+const prompt = innerPagePrompt(Astro.url.pathname, command);
+---
+
+<BaseLayout title={title} description={description}>
+  <PromptBar path={prompt.path} command={prompt.command} />
+  <p class="back"><a href={back.href}>← {back.label}</a></p>
+  <main>
+    <slot />
+  </main>
+</BaseLayout>

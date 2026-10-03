@@ -1,23 +1,18 @@
 ---
 import NoteList from '../../components/NoteList.astro';
-import PromptBar from '../../components/PromptBar.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
 import { getNotesNewestFirst } from '../../notes';
 
 const notes = await getNotesNewestFirst();
 ---
 
-<BaseLayout title="Notas">
-  <PromptBar path="/notes" command="ls" />
-  <p class="back"><a href="/">← inicio</a></p>
-  <main>
-    <h1 class="page-title">Notas</h1>
-    {
-      notes.length === 0 ? (
-        <p class="empty">Todavía no hay notas.</p>
-      ) : (
-        <NoteList notes={notes} class="prose" />
-      )
-    }
-  </main>
-</BaseLayout>
+<InnerPageLayout title="Notas" command="ls" back={{ href: '/', label: 'inicio' }}>
+  <h1 class="page-title">Notas</h1>
+  {
+    notes.length === 0 ? (
+      <p class="empty">Todavía no hay notas.</p>
+    ) : (
+      <NoteList notes={notes} class="prose" />
+    )
+  }
+</InnerPageLayout>
