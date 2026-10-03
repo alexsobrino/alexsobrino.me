@@ -6,6 +6,7 @@ import config from '../astro.config.mjs';
 import { siteLanguage } from '../src/site-language.ts';
 import { findBrokenLinks } from './built-site.ts';
 import { readContent, type Content } from './content.ts';
+import { findFeedProblems } from './feed.ts';
 import { findLanguageProblems, findPromptProblems, type PageProblem } from './pages.ts';
 
 // The built site, as `npm run build` leaves it, and the content it was built from.
@@ -38,6 +39,16 @@ test('every page is in the site language, and every Note and Side Project in its
   const problems = await findLanguageProblems(buildDir, siteLanguage, content);
 
   assert.deepEqual(problems, [], `Wrong languages:\n${listed(problems)}`);
+});
+
+test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', async () => {
+  const problems = await findFeedProblems(buildDir, config.site!, content.notes);
+
+  assert.deepEqual(
+    problems,
+    [],
+    `RSS feed problems:\n${problems.map(({ item, message }) => `  ${item}: ${message}`).join('\n')}`,
+  );
 });
 
 /** One line per problem, naming its page. */
