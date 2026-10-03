@@ -1,17 +1,14 @@
 ---
 import { Image } from 'astro:assets';
-import { getCollection } from 'astro:content';
 import photo from '../assets/alex.jpg';
 import PromptBar from '../components/PromptBar.astro';
 import NoteList from '../components/NoteList.astro';
 import SideProjectList from '../components/SideProjectList.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getNotesNewestFirst } from '../notes';
+import { getSideProjects } from '../side-projects';
 
-// Running Side Projects first, Retired ones after.
-const sideProjects = (await getCollection('sideProjects')).sort(
-  (a, b) => Number(a.data.retired) - Number(b.data.retired) || a.data.name.localeCompare(b.data.name),
-);
+const sideProjects = await getSideProjects();
 const latestNotes = (await getNotesNewestFirst()).slice(0, 5);
 const year = new Date().getFullYear();
 ---
@@ -43,7 +40,7 @@ const year = new Date().getFullYear();
       sideProjects.length > 0 && (
         <section class="section" aria-labelledby="projects-title">
           <h2 class="section__title" id="projects-title">Proyectos personales</h2>
-          <SideProjectList projects={sideProjects} />
+          <SideProjectList sideProjects={sideProjects} />
         </section>
       )
     }

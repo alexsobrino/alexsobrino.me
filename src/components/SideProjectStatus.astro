@@ -1,0 +1,28 @@
+---
+import type { SideProject } from '../side-projects';
+
+// The status badge of a Side Project. It only sets its own look; where it sits is up to whoever places it.
+
+interface Props {
+  sideProject: SideProject;
+  class?: string;
+}
+
+const { sideProject, class: className } = Astro.props;
+const { retired } = sideProject.data;
+---
+
+<span class:list={['status', { 'status--retired': retired }, className]}>{retired ? '○ retirado' : '● activo'}</span>
+
+<style is:global>
+  .status {
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0.35em 0.6em;
+    border-radius: 3px;
+    white-space: nowrap;
+    color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .status--retired { color: var(--warn); background: var(--warn-bg); }
+</style>
