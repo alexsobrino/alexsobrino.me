@@ -3,9 +3,10 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import photo from '../assets/alex.jpg';
 import PromptBar from '../components/PromptBar.astro';
+import NoteList from '../components/NoteList.astro';
 import SideProjectList from '../components/SideProjectList.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { formatDate, getNotesNewestFirst } from '../lib';
+import { getNotesNewestFirst } from '../notes';
 
 // Running Side Projects first, Retired ones after.
 const sideProjects = (await getCollection('sideProjects')).sort(
@@ -32,14 +33,7 @@ const year = new Date().getFullYear();
       latestNotes.length > 0 && (
         <section class="section" aria-labelledby="notes-title">
           <h2 class="section__title" id="notes-title">Notas</h2>
-          <ul class="notes">
-            {latestNotes.map((note) => (
-              <li class="note" lang={note.data.lang}>
-                <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
-                <a href={`/notes/${note.id}/`}>{note.data.title}</a>
-              </li>
-            ))}
-          </ul>
+          <NoteList notes={latestNotes} />
           <a class="more" href="/notes/">Todas las notas →</a>
         </section>
       )

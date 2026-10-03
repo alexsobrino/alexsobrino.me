@@ -1,0 +1,32 @@
+---
+import { formatDate, noteUrl, type Note } from '../notes';
+
+interface Props {
+  notes: Note[];
+  class?: string;
+}
+
+const { notes, class: className } = Astro.props;
+---
+
+<ul class:list={['notes', className]}>
+  {
+    notes.map((note) => (
+      <li class="note" lang={note.data.lang}>
+        <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+        <a href={noteUrl(note)}>{note.data.title}</a>
+      </li>
+    ))
+  }
+</ul>
+
+<style is:global>
+  /* :where() keeps the list's spacing overridable by a class the page adds (the Notes listing adds .prose) */
+  :where(.notes) { list-style: none; margin: 0 0 1rem; padding: 0; }
+  .note { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0 1rem; padding: 0.3rem 0; }
+  .note__date { color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (max-width: 30rem) {
+    .note { grid-template-columns: 1fr; }
+    .note__date { font-size: 0.8125rem; }
+  }
+</style>
