@@ -1,0 +1,19 @@
+---
+import NoteList from '../../../components/NoteList.astro';
+import PromptBar from '../../../components/PromptBar.astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getTagPaths } from '../../../tags';
+
+export const getStaticPaths = getTagPaths;
+
+const { tag, notes } = Astro.props;
+---
+
+<BaseLayout title={tag.data.name}>
+  <PromptBar path={`/notes/tags/${tag.id}`} command="ls" />
+  <p class="back"><a href="/notes/">← notas</a></p>
+  <main>
+    <h1 class="page-title">{tag.data.name}</h1>
+    <NoteList notes={notes} class="prose" />
+  </main>
+</BaseLayout>

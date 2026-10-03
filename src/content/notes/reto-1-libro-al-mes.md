@@ -2,6 +2,7 @@
 title: 'Reto: un libro al mes'
 date: 2026-10-02
 description: Con la ingeniería de software cambiando a toda velocidad, vuelvo a los cimientos.
+tags: [un-libro-al-mes]
 ---
 
 Estamos viviendo un cambio de paradigma en la ingeniería de software. La forma de trabajar que dábamos por sentada se está reinventando delante de nuestros ojos, y todos, da igual los años que llevemos en esto, estamos aprendiendo y adaptándonos sobre la marcha.
