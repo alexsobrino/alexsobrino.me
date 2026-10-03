@@ -1,0 +1,3 @@
+# Every Tag, declared once by slug with just a name. Notes list Tags by these slugs.
+un-libro-al-mes:
+  name: Un libro al mes

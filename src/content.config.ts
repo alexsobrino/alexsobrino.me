@@ -1,5 +1,5 @@
-import { defineCollection } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { defineCollection, reference } from 'astro:content';
+import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
 // Content language: see docs/adr/0001-content-language-not-in-urls.md
@@ -11,7 +11,16 @@ const notes = defineCollection({
     title: z.string(),
     date: z.coerce.date(),
     description: z.string().optional(),
+    tags: z.array(reference('tags')).default([]),
     lang,
+  }),
+});
+
+// A Tag is just a name, with no Content language of its own.
+const tags = defineCollection({
+  loader: file('./src/content/tags.yml'),
+  schema: z.object({
+    name: z.string(),
   }),
 });
 
@@ -34,4 +43,4 @@ const sideProjects = defineCollection({
       }),
 });
 
-export const collections = { notes, sideProjects };
+export const collections = { notes, tags, sideProjects };
