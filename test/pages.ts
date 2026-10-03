@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { parse, type HTMLElement } from 'node-html-parser';
 import { htmlFiles, pageUrl } from './built-site.ts';
-import type { Content } from './content.ts';
+import type { Content, ContentNote } from './content.ts';
 
 export type PageProblem = { page: string; message: string };
 
@@ -47,6 +48,62 @@ export async function findLanguageProblems(buildDir: string, siteLanguage: strin
     if (articleProblem !== undefined) problems.push({ page, message: articleProblem });
   }
   return problems;
+}
+
+/** Every Note page whose meta line doesn't show the date then the Note's Tags in its order, each linking to its Tag page. */
+export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]): Promise<PageProblem[]> {
+  const problems: PageProblem[] = [];
+  const pages = await builtPages(buildDir);
+  // Each Tag page's title by its URL, to check a Tag links to its own page.
+  const tagPages = new Map(
+    pages
+      .filter(({ page }) => /^\/notes\/tags\/[^/]+\/$/.test(page))
+      .map(({ page, html }) => [page, textOf(html.querySelector('.page-title'))]),
+  );
+  for (const { page, html } of pages) {
+    const piece = innerPage(page)?.piece;
+    if (piece?.kind !== 'Note') continue;
+    const note = notes.find(({ id }) => id === piece.id);
+    if (note === undefined) {
+      problems.push({ page, message: `no Note "${piece.id}" in the content` });
+      continue;
+    }
+    const meta = html.querySelector('.page-meta');
+    if (meta === null) {
+      problems.push({ page, message: `no meta line, expected the date then ${tagList(note.tags)}` });
+      continue;
+    }
+    const actual = textOf(meta);
+    const expected = [textOf(meta.querySelector('time')), ...note.tags].join(' · ');
+    if (actual !== expected) {
+      problems.push({ page, message: `meta line reads "${actual}", expected "${expected}"` });
+      continue;
+    }
+    const links = meta.querySelectorAll('a');
+    const linked = links.map(textOf);
+    if (!isDeepStrictEqual(linked, note.tags)) {
+      problems.push({ page, message: `meta line links to ${tagList(linked)}, expected ${tagList(note.tags)}` });
+      continue;
+    }
+    for (const link of links) {
+      const name = textOf(link);
+      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const title = tagPages.get(href);
+      if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
+      else if (title !== name) problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${title}"` });
+    }
+  }
+  return problems;
+}
+
+/** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
+function tagList(names: string[]): string {
+  return names.length === 0 ? 'no Tags' : `Tags ${names.map((name) => `"${name}"`).join(', ')}`;
+}
+
+/** An element's text as it reads, whitespace collapsed; empty for no element. */
+function textOf(element: HTMLElement | null): string {
+  return element?.text.replace(/\s+/g, ' ').trim() ?? '';
 }
 
 /** What's wrong with an element's lang, if anything. */

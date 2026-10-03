@@ -1,7 +1,7 @@
 ---
 import { render } from 'astro:content';
 import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
-import { formatDate, getNotePaths } from '../../notes';
+import { formatDate, getNotePaths, tagUrl } from '../../notes';
 
 export const getStaticPaths = getNotePaths;
 
@@ -14,6 +14,14 @@ const { Content } = await render(note);
     <h1 class="page-title">{note.data.title}</h1>
     <p class="page-meta">
       <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+      {
+        note.tags.map((tag) => (
+          <>
+            {' · '}
+            <a href={tagUrl(tag)}>{tag.data.name}</a>
+          </>
+        ))
+      }
     </p>
     <div class="prose">
       <Content />
