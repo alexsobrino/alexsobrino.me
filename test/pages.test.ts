@@ -1,20 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import type { Content } from './content.ts';
+import { fakeFolder } from './fake-folder.ts';
 import { findLanguageProblems, findPromptProblems } from './pages.ts';
-
-/** Writes a fake build: each key is a path inside the build folder. */
-async function fakeBuild(files: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'pages-'));
-  for (const [path, content] of Object.entries(files)) {
-    await mkdir(dirname(join(dir, path)), { recursive: true });
-    await writeFile(join(dir, path), content);
-  }
-  return dir;
-}
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
 function prompt(sign: string, command: string): string {
@@ -28,7 +16,7 @@ const content: Content = {
 };
 
 test('accepts inner pages whose prompt reads as their URL says, and skips other pages', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'index.html': prompt('~ $', 'whoami'),
     '404.html': '<h1>No encontrado</h1>',
     'notes/index.html': prompt('~/notes $', 'ls'),
@@ -41,7 +29,7 @@ test('accepts inner pages whose prompt reads as their URL says, and skips other 
 });
 
 test('reports a prompt that does not read as its URL says, naming the page', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'notes/reto/index.html': prompt('~/notes $', 'cat otro'),
     'notes/tags/un-libro-al-mes/index.html': prompt('~/notes $', 'ls'),
   });
@@ -56,7 +44,7 @@ test('reports a prompt that does not read as its URL says, naming the page', asy
 });
 
 test('reports an inner page with no prompt', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'side-projects/sub9bar/index.html': '<h1>sub9bar</h1>',
   });
 
@@ -66,7 +54,7 @@ test('reports an inner page with no prompt', async () => {
 });
 
 test('accepts pages in the site language, with each Note and Side Project in its own Content language', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'index.html': '<html lang="es"><body></body></html>',
     'notes/index.html': '<html lang="es"><body></body></html>',
     'notes/reto/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
@@ -78,7 +66,7 @@ test('accepts pages in the site language, with each Note and Side Project in its
 });
 
 test('reports a page whose <html lang> is missing or not the site language', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'index.html': '<html lang="en"><body></body></html>',
     'notes/index.html': '<html><body></body></html>',
   });
@@ -90,7 +78,7 @@ test('reports a page whose <html lang> is missing or not the site language', asy
 });
 
 test('reports a Note or Side Project whose <article lang> is missing or not its Content language', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'notes/reto/index.html': '<html lang="es"><body><article></article></body></html>',
     'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
   });
@@ -102,7 +90,7 @@ test('reports a Note or Side Project whose <article lang> is missing or not its 
 });
 
 test('reports a Note or Side Project page with no <article>, or with no such piece in the content', async () => {
-  const dir = await fakeBuild({
+  const dir = await fakeFolder({
     'notes/reto/index.html': '<html lang="es"><body></body></html>',
     'notes/otro/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
     'side-projects/otro/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',

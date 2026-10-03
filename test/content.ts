@@ -21,7 +21,7 @@ export async function readContent(contentDir: string): Promise<Content> {
   );
   const notes = (await markdownFiles(join(contentDir, 'notes'))).map(({ id, data }) => ({
     id,
-    date: new Date(data.date as string),
+    date: noteDate(id, data.date),
     tags: ((data.tags ?? []) as string[]).map((tag) => {
       const name = tagNames.get(tag);
       if (name === undefined) throw new Error(`Note "${id}" has Tag "${tag}", which is not declared in tags.yml`);
@@ -36,6 +36,13 @@ export async function readContent(contentDir: string): Promise<Content> {
   return { notes, sideProjects };
 }
 
+/** A Note's date, as Astro reads it; a date that is not one fails rather than passing every check. */
+function noteDate(id: string, value: unknown): Date {
+  const date = new Date(value as string | Date);
+  if (Number.isNaN(date.valueOf())) throw new Error(`Note "${id}" has date "${value}", which is not a date`);
+  return date;
+}
+
 /** The Markdown files in a collection folder, each with its slug and frontmatter. */
 async function markdownFiles(dir: string): Promise<{ id: string; data: Record<string, unknown> }[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true }).catch(() => []);
@@ -47,7 +54,8 @@ async function markdownFiles(dir: string): Promise<{ id: string; data: Record<st
         const frontmatter = (await readFile(file, 'utf8')).match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '';
         // Astro's glob loader names an entry after its path: `notes/reto.md` is the Note `reto`.
         const id = relative(dir, file).split(sep).join('/').replace(/\.md$/, '');
-        return { id, data: (parse(frontmatter) ?? {}) as Record<string, unknown> };
+        // YAML timestamps as dates, so one with no offset is UTC, as Astro reads it.
+        return { id, data: (parse(frontmatter, { customTags: ['timestamp'] }) ?? {}) as Record<string, unknown> };
       }),
   );
 }

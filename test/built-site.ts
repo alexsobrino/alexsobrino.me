@@ -35,6 +35,7 @@ function references(element: HTMLElement): string[] {
   ];
 }
 
+/** Every built HTML file, by its path. */
 export async function htmlFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   return entries

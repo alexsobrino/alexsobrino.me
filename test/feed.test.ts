@@ -1,25 +1,13 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import type { ContentNote } from './content.ts';
+import { fakeFolder } from './fake-folder.ts';
 import { findFeedProblems } from './feed.ts';
 
 const site = 'https://alexsobrino.me';
 
 const reto: ContentNote = { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes', 'Retos & más'], lang: 'es' };
 const hola: ContentNote = { id: 'hola', date: new Date('2026-09-01'), tags: [], lang: 'es' };
-
-/** Writes a fake build: each key is a path inside the build folder. */
-async function fakeBuild(files: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'feed-'));
-  for (const [path, content] of Object.entries(files)) {
-    await mkdir(dirname(join(dir, path)), { recursive: true });
-    await writeFile(join(dir, path), content);
-  }
-  return dir;
-}
 
 /** A fake build with both Note pages and an RSS feed carrying these items, in this order. */
 function buildWithFeed(items: { link: string; categories?: string[] }[]): Promise<string> {
@@ -33,7 +21,7 @@ function buildWithFeed(items: { link: string; categories?: string[] }[]): Promis
       ].join(''),
     )
     .join('');
-  return fakeBuild({
+  return fakeFolder({
     'rss.xml': `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Notas</title>${xml}</channel></rss>`,
     'notes/reto/index.html': '',
     'notes/hola/index.html': '',
@@ -50,10 +38,10 @@ test('accepts a feed with one item per Note, newest first, carrying its Tags', a
 });
 
 test('reports a build with no feed, or a feed that is not RSS', async () => {
-  assert.deepEqual(await findFeedProblems(await fakeBuild({}), site, [reto]), [
+  assert.deepEqual(await findFeedProblems(await fakeFolder({}), site, [reto]), [
     { item: 'feed', message: 'rss.xml is not in the build' },
   ]);
-  assert.deepEqual(await findFeedProblems(await fakeBuild({ 'rss.xml': '<html><body></body></html>' }), site, [reto]), [
+  assert.deepEqual(await findFeedProblems(await fakeFolder({ 'rss.xml': '<html><body></body></html>' }), site, [reto]), [
     { item: 'feed', message: 'rss.xml is not RSS: it has no <rss><channel>' },
   ]);
 });
