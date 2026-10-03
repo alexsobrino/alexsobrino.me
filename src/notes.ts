@@ -7,6 +7,7 @@ import { siteLanguage } from './site-language';
 export type Tag = CollectionEntry<'tags'>;
 
 // A Note as the site hands it out: with its Tags resolved, in the order it lists them.
+// Use `tags`, not `data.tags`, which only refers to them by slug.
 export type Note = CollectionEntry<'notes'> & { tags: Tag[] };
 
 export function noteUrl(note: Note) {
@@ -47,10 +48,11 @@ export async function getNotesNewestFirst() {
 // Each lists its Notes newest first, and a Tag with no Notes gets no page.
 export async function getTagPaths() {
   const notes = await getNotesNewestFirst();
-  const tags = new Map(notes.flatMap((note) => note.tags.map((tag) => [tag.id, tag])));
-  return [...tags.values()].map((tag) => ({
+  // Notes share one object per Tag, so a Set gathers each Tag once.
+  const tags = new Set(notes.flatMap((note) => note.tags));
+  return [...tags].map((tag) => ({
     params: { id: tag.id },
-    props: { tag, notes: notes.filter((note) => note.tags.some(({ id }) => id === tag.id)) },
+    props: { tag, notes: notes.filter((note) => note.tags.includes(tag)) },
   }));
 }
 
