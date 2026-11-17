@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
 import { isBuilt } from './built-site.ts';
-import type { ContentNote } from './content.ts';
+import { tagNames, type ContentNote } from './content.ts';
 
 export type FeedProblem = { item: string; message: string };
 
@@ -59,8 +59,9 @@ export async function findFeedProblems(buildDir: string, site: string, notes: Co
     }
     previous = { position, note };
 
-    if (JSON.stringify(category) !== JSON.stringify(note.tags)) {
-      report(`categories are ${JSON.stringify(category)}, expected ${JSON.stringify(note.tags)}`);
+    const names = tagNames(note);
+    if (JSON.stringify(category) !== JSON.stringify(names)) {
+      report(`categories are ${JSON.stringify(category)}, expected ${JSON.stringify(names)}`);
     }
   }
 

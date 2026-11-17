@@ -6,7 +6,15 @@ import { findFeedProblems } from './feed.ts';
 
 const site = 'https://alexsobrino.me';
 
-const reto: ContentNote = { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes', 'Retos & más'], lang: 'es' };
+const reto: ContentNote = {
+  id: 'reto',
+  date: new Date('2026-10-02'),
+  tags: [
+    { id: 'un-libro-al-mes', name: 'Un libro al mes' },
+    { id: 'retos', name: 'Retos & más' },
+  ],
+  lang: 'es',
+};
 const hola: ContentNote = { id: 'hola', date: new Date('2026-09-01'), tags: [], lang: 'es' };
 
 /** A fake build with both Note pages and an RSS feed carrying these items, in this order. */

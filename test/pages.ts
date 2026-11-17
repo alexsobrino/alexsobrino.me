@@ -3,30 +3,39 @@ import { relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { parse, type HTMLElement } from 'node-html-parser';
 import { htmlFiles, pageUrl } from './built-site.ts';
-import type { Content, ContentNote } from './content.ts';
+import { tagNames, type Content, type ContentNote } from './content.ts';
+import type { ExpectedPage } from './expected-pages.ts';
 
 export type PageProblem = { page: string; message: string };
 
-/** An inner page, as its URL says it should be: its prompt, and the Note or Side Project it shows. */
-type InnerPage = { prompt: string; piece?: { kind: 'Note' | 'Side Project'; id: string } };
+/** The built site's pages, each parsed, by URL in URL order: read once and handed to the checks. */
+export type Build = Map<string, HTMLElement>;
+
+/** Every expected page that is not in the build. */
+export function findMissingPages(expected: ExpectedPage[], build: Build): PageProblem[] {
+  return expected.filter(({ url }) => !build.has(url)).map(({ url }) => ({ page: url, message: 'is not in the build' }));
+}
+
+/** The Note or Side Project an inner page shows, as its URL says. */
+type Piece = { kind: 'Note' | 'Side Project'; id: string };
 
 /** A Tag page's URL, /notes/tags/<id>/. */
 const tagPageUrl = /^\/notes\/tags\/([^/]+)\/$/;
 
-/** Every inner page whose prompt is missing or doesn't read as its URL says it should. */
-export async function findPromptProblems(buildDir: string): Promise<PageProblem[]> {
+/** Every expected page in the build whose prompt is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
+export function findPromptProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
-  for (const { page, html } of await builtPages(buildDir)) {
-    const expected = innerPage(page)?.prompt;
-    if (expected === undefined) continue;
+  for (const { url: page, prompt: expectedPrompt } of expected) {
+    const html = build.get(page);
+    if (html === undefined) continue;
     const prompt = html.querySelector('.prompt');
     if (prompt === null) {
-      problems.push({ page, message: `no prompt, expected "${expected}"` });
+      problems.push({ page, message: `no prompt, expected "${expectedPrompt}"` });
       continue;
     }
     const actual = textOf(prompt);
-    if (actual !== expected) {
-      problems.push({ page, message: `prompt reads "${actual}", expected "${expected}"` });
+    if (actual !== expectedPrompt) {
+      problems.push({ page, message: `prompt reads "${actual}", expected "${expectedPrompt}"` });
     }
   }
   return problems;
@@ -39,7 +48,7 @@ export async function findLanguageProblems(buildDir: string, siteLanguage: strin
     const htmlProblem = langProblem('<html>', html.querySelector('html'), siteLanguage);
     if (htmlProblem !== undefined) problems.push({ page, message: htmlProblem });
 
-    const piece = innerPage(page)?.piece;
+    const piece = pieceOf(page);
     if (piece === undefined) continue;
     const pieces = piece.kind === 'Note' ? content.notes : content.sideProjects;
     const expected = pieces.find(({ id }) => id === piece.id)?.lang;
@@ -59,28 +68,29 @@ export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]
   const pages = await builtPages(buildDir);
   const tagPages = tagPageTitles(pages);
   for (const { page, html } of pages) {
-    const piece = innerPage(page)?.piece;
+    const piece = pieceOf(page);
     if (piece?.kind !== 'Note') continue;
     const note = notes.find(({ id }) => id === piece.id);
     if (note === undefined) {
       problems.push({ page, message: `no Note "${piece.id}" in the content` });
       continue;
     }
+    const names = tagNames(note);
     const meta = html.querySelector('.page-meta');
     if (meta === null) {
-      problems.push({ page, message: `no meta line, expected the date then ${describeTags(note.tags)}` });
+      problems.push({ page, message: `no meta line, expected the date then ${describeTags(names)}` });
       continue;
     }
     const actual = textOf(meta);
-    const expected = [textOf(meta.querySelector('time')), ...note.tags].join(' · ');
+    const expected = [textOf(meta.querySelector('time')), ...names].join(' · ');
     if (actual !== expected) {
       problems.push({ page, message: `meta line reads "${actual}", expected "${expected}"` });
       continue;
     }
     const links = meta.querySelectorAll('a');
     const linked = links.map(textOf);
-    if (!isDeepStrictEqual(linked, note.tags)) {
-      problems.push({ page, message: `meta line links to ${describeTags(linked)}, expected ${describeTags(note.tags)}` });
+    if (!isDeepStrictEqual(linked, names)) {
+      problems.push({ page, message: `meta line links to ${describeTags(linked)}, expected ${describeTags(names)}` });
       continue;
     }
     for (const link of links) {
@@ -103,7 +113,7 @@ export async function findTagListProblems(buildDir: string, siteLanguage: string
 
   // A Note counts once for each Tag it lists.
   const counts = new Map<string, number>();
-  for (const name of notes.flatMap((note) => [...new Set(note.tags)])) counts.set(name, (counts.get(name) ?? 0) + 1);
+  for (const name of notes.flatMap((note) => [...new Set(tagNames(note))])) counts.set(name, (counts.get(name) ?? 0) + 1);
   const expected = [...counts]
     .sort(([a], [b]) => a.localeCompare(b, siteLanguage))
     .map(([name, count]) => `${name} · ${count}`);
@@ -155,27 +165,23 @@ function langProblem(name: string, element: HTMLElement | null, expected: string
   if (lang !== expected) return `${name} has lang "${lang}", expected "${expected}"`;
 }
 
-/** Every built page, parsed, in URL order so problems come out in a stable order. */
-async function builtPages(buildDir: string): Promise<{ page: string; html: HTMLElement }[]> {
+/** Reads and parses every built page, in URL order so problems come out in a stable order. */
+export async function readBuild(buildDir: string): Promise<Build> {
   const pages = await Promise.all(
-    (await htmlFiles(buildDir)).map(async (file) => ({
-      page: pageUrl(relative(buildDir, file)),
-      html: parse(await readFile(file, 'utf8')),
-    })),
+    (await htmlFiles(buildDir)).map(async (file) => [pageUrl(relative(buildDir, file)), parse(await readFile(file, 'utf8'))] as const),
   );
-  return pages.sort((a, b) => (a.page < b.page ? -1 : 1));
+  return new Map(pages.sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 
-/** What an inner page should be, from its URL; nothing for other pages, like the home page or 404. */
-function innerPage(page: string): InnerPage | undefined {
-  if (page === '/notes/') return { prompt: '~/notes $ ls' };
-  if (page === '/notes/tags/') return { prompt: '~/notes/tags $ ls' };
-  const tag = page.match(tagPageUrl)?.[1];
-  if (tag !== undefined) return { prompt: `~/notes/tags/${tag} $ ls` };
+/** Every built page, parsed, in URL order. */
+async function builtPages(buildDir: string): Promise<{ page: string; html: HTMLElement }[]> {
+  return [...(await readBuild(buildDir))].map(([page, html]) => ({ page, html }));
+}
+
+/** The Note or Side Project a page shows, from its URL; nothing for other pages, like the Tags listing at /notes/tags/. */
+function pieceOf(page: string): Piece | undefined {
   const note = page.match(/^\/notes\/([^/]+)\/$/)?.[1];
-  if (note !== undefined) return { prompt: `~/notes $ cat ${note}`, piece: { kind: 'Note', id: note } };
+  if (note !== undefined && note !== 'tags') return { kind: 'Note', id: note };
   const sideProject = page.match(/^\/side-projects\/([^/]+)\/$/)?.[1];
-  if (sideProject !== undefined) {
-    return { prompt: `~/side-projects $ cat ${sideProject}`, piece: { kind: 'Side Project', id: sideProject } };
-  }
+  if (sideProject !== undefined) return { kind: 'Side Project', id: sideProject };
 }
