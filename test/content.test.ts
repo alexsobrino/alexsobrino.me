@@ -16,7 +16,7 @@ test('reads each Note by slug with its date, Tags in its own order and Content l
     notes.sort((a, b) => a.id.localeCompare(b.id)),
     [
       { id: 'hola', date: new Date('2026-09-01T00:00:00Z'), tags: [], lang: 'es' },
-      { id: 'reto', date: new Date('2026-10-02T00:00:00Z'), tags: ['Un libro al mes', 'Retos'], lang: 'en' },
+      { id: 'reto', date: new Date('2026-10-02T00:00:00Z'), tags: [{ id: 'libros', name: 'Un libro al mes' }, { id: 'retos', name: 'Retos' }], lang: 'en' },
     ],
   );
 });

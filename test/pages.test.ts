@@ -2,7 +2,15 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Content, ContentNote } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
-import { findLanguageProblems, findNoteTagProblems, findPromptProblems, findTagListProblems } from './pages.ts';
+import type { ExpectedPage } from './expected-pages.ts';
+import {
+  findLanguageProblems,
+  findMissingPages,
+  findNoteTagProblems,
+  findPromptProblems,
+  findTagListProblems,
+  readBuild,
+} from './pages.ts';
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
 function prompt(sign: string, command: string): string {
@@ -21,10 +29,12 @@ function tagPage(name: string): string {
 }
 
 const siteLanguage = 'es';
+const libro = { id: 'un-libro-al-mes', name: 'Un libro al mes' };
+const pragmatic = { id: 'the-pragmatic-programmer', name: 'The Pragmatic Programmer' };
 const content: Content = {
   notes: [
-    { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes'], lang: 'en' },
-    { id: 'libros', date: new Date('2026-11-02'), tags: ['Un libro al mes', 'The Pragmatic Programmer'], lang: 'es' },
+    { id: 'reto', date: new Date('2026-10-02'), tags: [libro], lang: 'en' },
+    { id: 'libros', date: new Date('2026-11-02'), tags: [libro, pragmatic], lang: 'es' },
     { id: 'hola', date: new Date('2026-09-01'), tags: [], lang: 'es' },
   ],
   sideProjects: [{ id: 'sub9bar', lang: 'es' }],
@@ -40,32 +50,78 @@ function tagListing(items: { name: string; href?: string; count: number }[]): st
 
 // "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
 const taggedNotes: ContentNote[] = [
-  { id: 'reto', date: new Date('2026-10-02'), tags: ['Un libro al mes'], lang: 'es' },
-  { id: 'etica', date: new Date('2026-09-01'), tags: ['Zen', 'Ética', 'Un libro al mes'], lang: 'es' },
+  { id: 'reto', date: new Date('2026-10-02'), tags: [libro], lang: 'es' },
+  { id: 'etica', date: new Date('2026-09-01'), tags: [{ id: 'zen', name: 'Zen' }, { id: 'etica', name: 'Ética' }, libro], lang: 'es' },
   { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
 ];
 
-test('accepts inner pages whose prompt reads as their URL says, and skips other pages', async () => {
-  const dir = await fakeFolder({
-    'index.html': prompt('~ $', 'whoami'),
-    '404.html': '<h1>No encontrado</h1>',
-    'notes/index.html': prompt('~/notes $', 'ls'),
-    'notes/reto/index.html': prompt('~/notes $', 'cat reto'),
-    'notes/tags/index.html': prompt('~/notes/tags $', 'ls'),
-    'notes/tags/un-libro-al-mes/index.html': prompt('~/notes/tags/un-libro-al-mes $', 'ls'),
-    'side-projects/sub9bar/index.html': prompt('~/side-projects $', 'cat sub9bar'),
-  });
+const expectedPages: ExpectedPage[] = [
+  { url: '/', prompt: '~ $ whoami' },
+  { url: '/notes/', prompt: '~/notes $ ls' },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto' },
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls' },
+  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar' },
+];
 
-  assert.deepEqual(await findPromptProblems(dir), []);
+test('accepts a build with every expected page, whatever else it has', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '',
+      '404.html': '',
+      'notes/index.html': '',
+      'notes/reto/index.html': '',
+      'notes/tags/index.html': '',
+      'notes/tags/un-libro-al-mes/index.html': '',
+      'side-projects/sub9bar/index.html': '',
+    }),
+  );
+
+  assert.deepEqual(findMissingPages(expectedPages, build), []);
 });
 
-test('reports a prompt that does not read as its URL says, naming the page', async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': prompt('~/notes $', 'cat otro'),
-    'notes/tags/un-libro-al-mes/index.html': prompt('~/notes $', 'ls'),
-  });
+test('reports each expected page that is not in the build, naming the page', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '',
+      'notes/index.html': '',
+      'notes/tags/index.html': '',
+      'side-projects/sub9bar/index.html': '',
+    }),
+  );
 
-  assert.deepEqual(await findPromptProblems(dir), [
+  assert.deepEqual(findMissingPages(expectedPages, build), [
+    { page: '/notes/reto/', message: 'is not in the build' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'is not in the build' },
+  ]);
+});
+
+test('accepts expected pages whose prompt reads as expected', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': prompt('~ $', 'whoami'),
+      'notes/index.html': prompt('~/notes $', 'ls'),
+      'notes/reto/index.html': prompt('~/notes $', 'cat reto'),
+      'notes/tags/index.html': prompt('~/notes/tags $', 'ls'),
+      'notes/tags/un-libro-al-mes/index.html': prompt('~/notes/tags/un-libro-al-mes $', 'ls'),
+      'side-projects/sub9bar/index.html': prompt('~/side-projects $', 'cat sub9bar'),
+    }),
+  );
+
+  assert.deepEqual(findPromptProblems(expectedPages, build), []);
+});
+
+test('reports a prompt that does not read as expected, naming the page', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': prompt('~ $', 'ls'),
+      'notes/reto/index.html': prompt('~/notes $', 'cat otro'),
+      'notes/tags/un-libro-al-mes/index.html': prompt('~/notes $', 'ls'),
+    }),
+  );
+
+  assert.deepEqual(findPromptProblems(expectedPages, build), [
+    { page: '/', message: 'prompt reads "~ $ ls", expected "~ $ whoami"' },
     { page: '/notes/reto/', message: 'prompt reads "~/notes $ cat otro", expected "~/notes $ cat reto"' },
     {
       page: '/notes/tags/un-libro-al-mes/',
@@ -74,12 +130,14 @@ test('reports a prompt that does not read as its URL says, naming the page', asy
   ]);
 });
 
-test('reports an inner page with no prompt', async () => {
-  const dir = await fakeFolder({
-    'side-projects/sub9bar/index.html': '<h1>sub9bar</h1>',
-  });
+test('reports an expected page with no prompt, leaving pages not in the build to the missing-page check', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'side-projects/sub9bar/index.html': '<h1>sub9bar</h1>',
+    }),
+  );
 
-  assert.deepEqual(await findPromptProblems(dir), [
+  assert.deepEqual(findPromptProblems(expectedPages, build), [
     { page: '/side-projects/sub9bar/', message: 'no prompt, expected "~/side-projects $ cat sub9bar"' },
   ]);
 });

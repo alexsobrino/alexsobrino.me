@@ -5,14 +5,15 @@ import { parse } from 'yaml';
 // What src/content says the built site should show, read straight from the files rather than
 // through Astro, so the built-site tests have their own expectations to check the build against.
 
-export type ContentNote = { id: string; date: Date; tags: string[]; lang: string };
+export type ContentTag = { id: string; name: string };
+export type ContentNote = { id: string; date: Date; tags: ContentTag[]; lang: string };
 export type ContentSideProject = { id: string; lang: string };
 export type Content = { notes: ContentNote[]; sideProjects: ContentSideProject[] };
 
 // The Content language a piece has when its frontmatter doesn't say, as in src/content.config.ts.
 const defaultLang = 'es';
 
-/** Every Note, with its Tags as names in the order it lists them, and every Side Project. */
+/** Every Note, with its Tags (slug and name) in the order it lists them, and every Side Project. */
 export async function readContent(contentDir: string): Promise<Content> {
   const tagNames = new Map(
     Object.entries((parse(await readFile(join(contentDir, 'tags.yml'), 'utf8')) ?? {}) as Record<string, { name: string }>).map(
@@ -25,7 +26,7 @@ export async function readContent(contentDir: string): Promise<Content> {
     tags: ((data.tags ?? []) as string[]).map((tag) => {
       const name = tagNames.get(tag);
       if (name === undefined) throw new Error(`Note "${id}" has Tag "${tag}", which is not declared in tags.yml`);
-      return name;
+      return { id: tag, name };
     }),
     lang: (data.lang as string | undefined) ?? defaultLang,
   }));
@@ -34,6 +35,11 @@ export async function readContent(contentDir: string): Promise<Content> {
     lang: (data.lang as string | undefined) ?? defaultLang,
   }));
   return { notes, sideProjects };
+}
+
+/** A Note's Tags by name, in the order it lists them, as the site shows them. */
+export function tagNames(note: ContentNote): string[] {
+  return note.tags.map(({ name }) => name);
 }
 
 /** A Note's date, as Astro reads it; a date that is not one fails rather than passing every check. */

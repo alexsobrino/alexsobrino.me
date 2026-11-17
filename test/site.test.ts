@@ -6,17 +6,31 @@ import config from '../astro.config.mjs';
 import { siteLanguage } from '../src/site-language.ts';
 import { findBrokenLinks } from './built-site.ts';
 import { readContent, type Content } from './content.ts';
+import { readExpectedPages, type ExpectedPage } from './expected-pages.ts';
 import { findFeedProblems } from './feed.ts';
-import { findLanguageProblems, findNoteTagProblems, findPromptProblems, findTagListProblems, type PageProblem } from './pages.ts';
+import {
+  findLanguageProblems,
+  findMissingPages,
+  findNoteTagProblems,
+  findPromptProblems,
+  findTagListProblems,
+  readBuild,
+  type Build,
+  type PageProblem,
+} from './pages.ts';
 
 // The built site, as `npm run build` leaves it, and the content it was built from.
 const buildDir = fileURLToPath(new URL('../dist/', import.meta.url));
 const contentDir = fileURLToPath(new URL('../src/content/', import.meta.url));
 let content: Content;
+let expectedPages: ExpectedPage[];
+let build: Build;
 
 before(async () => {
   assert.ok(existsSync(buildDir), `No build at ${buildDir}: run \`npm run build\` first.`);
   content = await readContent(contentDir);
+  expectedPages = await readExpectedPages(contentDir);
+  build = await readBuild(buildDir);
 });
 
 test('every internal link and asset reference points to something in the build', async () => {
@@ -29,8 +43,14 @@ test('every internal link and asset reference points to something in the build',
   );
 });
 
-test('every inner page has the prompt its URL says it should', async () => {
-  const problems = await findPromptProblems(buildDir);
+test('every page the content calls for is in the build', () => {
+  const problems = findMissingPages(expectedPages, build);
+
+  assert.deepEqual(problems, [], `Missing pages:\n${listed(problems)}`);
+});
+
+test('every expected page has the prompt it should', () => {
+  const problems = findPromptProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Wrong prompts:\n${listed(problems)}`);
 });
