@@ -61,8 +61,8 @@ test('every page is in the site language, and every Note and Side Project in its
   assert.deepEqual(problems, [], `Wrong languages:\n${listed(problems)}`);
 });
 
-test("every Note page shows its Tags after the date, in the Note's order, each linking to its Tag page", async () => {
-  const problems = await findNoteTagProblems(buildDir, content.notes);
+test("every Note page shows its Tags after the date, in the Note's order, each linking to its Tag page", () => {
+  const problems = findNoteTagProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Wrong Tags on Note pages:\n${listed(problems)}`);
 });

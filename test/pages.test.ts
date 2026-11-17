@@ -193,35 +193,64 @@ test('reports a Note or Side Project page with no <article>, or with no such pie
   ]);
 });
 
-test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': meta({ name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' }),
-    'notes/libros/index.html': meta(
-      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' },
-      { name: 'The Pragmatic Programmer', href: '/notes/tags/the-pragmatic-programmer/' },
-    ),
-    'notes/hola/index.html': meta(),
-    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
-    'notes/tags/the-pragmatic-programmer/index.html': tagPage('The Pragmatic Programmer'),
-    'index.html': '<p class="page-meta">Sin Tags</p>',
-  });
+const libroTag = { name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' };
+const pragmaticTag = { name: 'The Pragmatic Programmer', url: '/notes/tags/the-pragmatic-programmer/' };
 
-  assert.deepEqual(await findNoteTagProblems(dir, content.notes), []);
+/** Expected Note pages with their Tags, and the Tag pages they link to. */
+const noteTagPages: ExpectedPage[] = [
+  { url: '/notes/hola/', prompt: '~/notes $ cat hola', tags: [] },
+  { url: '/notes/libros/', prompt: '~/notes $ cat libros', tags: [libroTag, pragmaticTag] },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', tags: [libroTag] },
+  {
+    url: '/notes/tags/the-pragmatic-programmer/',
+    prompt: '~/notes/tags/the-pragmatic-programmer $ ls',
+    title: 'The Pragmatic Programmer',
+  },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', title: 'Un libro al mes' },
+];
+
+test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': meta({ name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' }),
+      'notes/libros/index.html': meta(
+        { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' },
+        { name: 'The Pragmatic Programmer', href: '/notes/tags/the-pragmatic-programmer/' },
+      ),
+      'notes/hola/index.html': meta(),
+      'index.html': '<p class="page-meta">Sin Tags</p>',
+    }),
+  );
+
+  assert.deepEqual(findNoteTagProblems(noteTagPages, build), []);
+});
+
+test('accepts a Tag link whose URL is encoded, as the build writes a non-ASCII slug', async () => {
+  const build = await readBuild(
+    await fakeFolder({ 'notes/año/index.html': meta({ name: 'Año', href: '/notes/tags/a%C3%B1o/' }) }),
+  );
+
+  const expected: ExpectedPage[] = [
+    { url: '/notes/año/', prompt: '~/notes $ cat año', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', title: 'Año' },
+  ];
+
+  assert.deepEqual(findNoteTagProblems(expected, build), []);
 });
 
 test("reports a Note page whose meta line doesn't show its Tags, or shows others, or in another order", async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': meta(),
-    'notes/libros/index.html': meta(
-      { name: 'The Pragmatic Programmer', href: '/notes/tags/the-pragmatic-programmer/' },
-      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' },
-    ),
-    'notes/hola/index.html': meta({ name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' }),
-    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
-    'notes/tags/the-pragmatic-programmer/index.html': tagPage('The Pragmatic Programmer'),
-  });
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': meta(),
+      'notes/libros/index.html': meta(
+        { name: 'The Pragmatic Programmer', href: '/notes/tags/the-pragmatic-programmer/' },
+        { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' },
+      ),
+      'notes/hola/index.html': meta({ name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/' }),
+    }),
+  );
 
-  assert.deepEqual(await findNoteTagProblems(dir, content.notes), [
+  assert.deepEqual(findNoteTagProblems(noteTagPages, build), [
     {
       page: '/notes/hola/',
       message: 'meta line reads "2 oct 2026 · Un libro al mes", expected "2 oct 2026"',
@@ -236,17 +265,17 @@ test("reports a Note page whose meta line doesn't show its Tags, or shows others
 });
 
 test('reports a Tag shown without a link, or linking to no Tag page or to the page of another Tag', async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': '<p class="page-meta"><time>2 oct 2026</time> · Un libro al mes</p>',
-    'notes/libros/index.html': meta(
-      { name: 'Un libro al mes', href: '/notes/tags/the-pragmatic-programmer/' },
-      { name: 'The Pragmatic Programmer', href: '/notes/the-pragmatic-programmer/' },
-    ),
-    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
-    'notes/tags/the-pragmatic-programmer/index.html': tagPage('The Pragmatic Programmer'),
-  });
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': '<p class="page-meta"><time>2 oct 2026</time> · Un libro al mes</p>',
+      'notes/libros/index.html': meta(
+        { name: 'Un libro al mes', href: '/notes/tags/the-pragmatic-programmer/' },
+        { name: 'The Pragmatic Programmer', href: '/notes/the-pragmatic-programmer/' },
+      ),
+    }),
+  );
 
-  assert.deepEqual(await findNoteTagProblems(dir, content.notes), [
+  assert.deepEqual(findNoteTagProblems(noteTagPages, build), [
     {
       page: '/notes/libros/',
       message: 'Tag "Un libro al mes" links to /notes/tags/the-pragmatic-programmer/, the Tag page of "The Pragmatic Programmer"',
@@ -259,14 +288,14 @@ test('reports a Tag shown without a link, or linking to no Tag page or to the pa
   ]);
 });
 
-test('reports a Note page with no meta line, or with no such Note in the content', async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': '<h1>Reto</h1>',
-    'notes/otro/index.html': meta(),
-  });
+test('reports a Note page with no meta line, leaving pages not in the build to the missing-page check', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': '<h1>Reto</h1>',
+    }),
+  );
 
-  assert.deepEqual(await findNoteTagProblems(dir, content.notes), [
-    { page: '/notes/otro/', message: 'no Note "otro" in the content' },
+  assert.deepEqual(findNoteTagProblems(noteTagPages, build), [
     { page: '/notes/reto/', message: 'no meta line, expected the date then Tags "Un libro al mes"' },
   ]);
 });
