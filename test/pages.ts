@@ -62,29 +62,25 @@ export async function findLanguageProblems(buildDir: string, siteLanguage: strin
   return problems;
 }
 
-/** Every Note page whose meta line doesn't show the date then the Note's Tags in its order, each linking to its Tag page. */
-export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]): Promise<PageProblem[]> {
+/**
+ * Every expected Note page in the build whose meta line doesn't show the date then the Note's Tags in its order,
+ * each linking to its Tag page. A page not in the build is left to findMissingPages.
+ */
+export function findNoteTagProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
-  const pages = await builtPages(buildDir);
-  const tagPages = tagPageTitles(pages);
-  for (const { page, html } of pages) {
-    const piece = pieceOf(page);
-    if (piece?.kind !== 'Note') continue;
-    const note = notes.find(({ id }) => id === piece.id);
-    if (note === undefined) {
-      problems.push({ page, message: `no Note "${piece.id}" in the content` });
-      continue;
-    }
-    const names = tagNames(note);
+  for (const { url: page, tags } of expected) {
+    const html = build.get(page);
+    if (tags === undefined || html === undefined) continue;
+    const names = tags.map(({ name }) => name);
     const meta = html.querySelector('.page-meta');
     if (meta === null) {
       problems.push({ page, message: `no meta line, expected the date then ${describeTags(names)}` });
       continue;
     }
     const actual = textOf(meta);
-    const expected = [textOf(meta.querySelector('time')), ...names].join(' · ');
-    if (actual !== expected) {
-      problems.push({ page, message: `meta line reads "${actual}", expected "${expected}"` });
+    const expectedMeta = [textOf(meta.querySelector('time')), ...names].join(' · ');
+    if (actual !== expectedMeta) {
+      problems.push({ page, message: `meta line reads "${actual}", expected "${expectedMeta}"` });
       continue;
     }
     const links = meta.querySelectorAll('a');
@@ -93,13 +89,14 @@ export async function findNoteTagProblems(buildDir: string, notes: ContentNote[]
       problems.push({ page, message: `meta line links to ${describeTags(linked)}, expected ${describeTags(names)}` });
       continue;
     }
-    for (const link of links) {
-      const name = textOf(link);
+    links.forEach((link, i) => {
+      const { name, url } = tags[i];
       const href = decodeURIComponent(link.getAttribute('href') ?? '');
-      const title = tagPages.get(href);
+      if (href === url) return;
+      const title = expected.find((other) => other.url === href)?.title;
       if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
-      else if (title !== name) problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${title}"` });
-    }
+      else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${title}"` });
+    });
   }
   return problems;
 }

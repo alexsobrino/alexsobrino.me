@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readExpectedPages } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 
-test('lists the home page, the Notes and Tags listings, each Note, each Tag with Notes and each Side Project, with their prompts', async () => {
+test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [un-libro-al-mes]\n---\n',
     'notes/hola.md': '---\ntitle: Hola\ndate: 2026-09-01\n---\n',
@@ -14,11 +14,29 @@ test('lists the home page, the Notes and Tags listings, each Note, each Tag with
   assert.deepEqual(await readExpectedPages(dir), [
     { url: '/', prompt: '~ $ whoami' },
     { url: '/notes/', prompt: '~/notes $ ls' },
-    { url: '/notes/hola/', prompt: '~/notes $ cat hola' },
-    { url: '/notes/reto/', prompt: '~/notes $ cat reto' },
+    { url: '/notes/hola/', prompt: '~/notes $ cat hola', tags: [] },
+    {
+      url: '/notes/reto/',
+      prompt: '~/notes $ cat reto',
+      tags: [{ name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' }],
+    },
     { url: '/notes/tags/', prompt: '~/notes/tags $ ls' },
-    { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls' },
+    { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', title: 'Un libro al mes' },
     { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar' },
+  ]);
+});
+
+test("gives a Note page its Tags in the Note's order, not the order of tags.yml", async () => {
+  const dir = await fakeFolder({
+    'notes/libros.md': '---\ntitle: Libros\ndate: 2026-11-02\ntags: [pragmatic, libro]\n---\n',
+    'tags.yml': 'libro:\n  name: Un libro al mes\npragmatic:\n  name: The Pragmatic Programmer\n',
+  });
+
+  const note = (await readExpectedPages(dir)).find(({ url }) => url === '/notes/libros/');
+
+  assert.deepEqual(note?.tags, [
+    { name: 'The Pragmatic Programmer', url: '/notes/tags/pragmatic/' },
+    { name: 'Un libro al mes', url: '/notes/tags/libro/' },
   ]);
 });
 
@@ -33,7 +51,7 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
 
   assert.deepEqual(tagPages, [
     { url: '/notes/tags/', prompt: '~/notes/tags $ ls' },
-    { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls' },
+    { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls', title: 'Un libro al mes' },
   ]);
 });
 
@@ -46,7 +64,7 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
   const pages = (await readExpectedPages(dir)).filter(({ url }) => url.includes('año'));
 
   assert.deepEqual(pages, [
-    { url: '/notes/año/', prompt: '~/notes $ cat año' },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls' },
+    { url: '/notes/año/', prompt: '~/notes $ cat año', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', title: 'Año' },
   ]);
 });

@@ -3,21 +3,36 @@ import { readContent } from './content.ts';
 // Every page the content says the build should have, worked out here from src/content rather than
 // through the site's code, so the built-site tests have their own expectations to check the build against.
 
-/** A page the build should have: its URL, as the build names its folder, and the prompt it shows. */
-export type ExpectedPage = { url: string; prompt: string };
+/** A Tag as a Note page shows it: its name, linking to its Tag page. */
+export type ExpectedTag = { name: string; url: string };
+
+/**
+ * A page the build should have: its URL, as the build names its folder, and the prompt it shows.
+ * A Note page also carries its Tags, in the Note's order; a Tag page also carries its title.
+ */
+export type ExpectedPage = { url: string; prompt: string; tags?: ExpectedTag[]; title?: string };
 
 /** Every expected page, in URL order: the home page, the Notes and Tags listings, each Note, each Tag that has Notes, and each Side Project. */
 export async function readExpectedPages(contentDir: string): Promise<ExpectedPage[]> {
   const { notes, sideProjects } = await readContent(contentDir);
   // A Tag with no Notes gets no page.
-  const tagIds = new Set(notes.flatMap((note) => note.tags.map(({ id }) => id)));
+  const tags = new Map(notes.flatMap((note) => note.tags.map(({ id, name }) => [id, name])));
   const pages: ExpectedPage[] = [
     { url: '/', prompt: '~ $ whoami' },
     { url: '/notes/', prompt: '~/notes $ ls' },
-    ...notes.map(({ id }) => ({ url: `/notes/${id}/`, prompt: `~/notes $ cat ${id}` })),
+    ...notes.map(({ id, tags }) => ({
+      url: `/notes/${id}/`,
+      prompt: `~/notes $ cat ${id}`,
+      tags: tags.map(({ id, name }) => ({ name, url: tagPageUrl(id) })),
+    })),
     { url: '/notes/tags/', prompt: '~/notes/tags $ ls' },
-    ...[...tagIds].map((id) => ({ url: `/notes/tags/${id}/`, prompt: `~/notes/tags/${id} $ ls` })),
+    ...[...tags].map(([id, name]) => ({ url: tagPageUrl(id), prompt: `~/notes/tags/${id} $ ls`, title: name })),
     ...sideProjects.map(({ id }) => ({ url: `/side-projects/${id}/`, prompt: `~/side-projects $ cat ${id}` })),
   ];
   return pages.sort((a, b) => (a.url < b.url ? -1 : 1));
+}
+
+/** A Tag's page, /notes/tags/<id>/. */
+function tagPageUrl(id: string): string {
+  return `/notes/tags/${id}/`;
 }
