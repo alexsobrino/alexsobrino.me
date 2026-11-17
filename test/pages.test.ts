@@ -193,9 +193,10 @@ test('reports a Note or Side Project page with no <article>, or with no such pie
   ]);
 });
 
-/** Expected Note pages with their Tags, and the Tag pages they link to. */
 const libroTag = { name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' };
 const pragmaticTag = { name: 'The Pragmatic Programmer', url: '/notes/tags/the-pragmatic-programmer/' };
+
+/** Expected Note pages with their Tags, and the Tag pages they link to. */
 const noteTagPages: ExpectedPage[] = [
   { url: '/notes/hola/', prompt: '~/notes $ cat hola', tags: [] },
   { url: '/notes/libros/', prompt: '~/notes $ cat libros', tags: [libroTag, pragmaticTag] },

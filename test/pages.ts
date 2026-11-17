@@ -62,10 +62,7 @@ export async function findLanguageProblems(buildDir: string, siteLanguage: strin
   return problems;
 }
 
-/**
- * Every expected Note page in the build whose meta line doesn't show the date then the Note's Tags in its order,
- * each linking to its Tag page. A page not in the build is left to findMissingPages.
- */
+/** Every expected Note page in the build whose meta line doesn't show the date then the Note's Tags in its order, each linking to its Tag page. A page not in the build is left to findMissingPages. */
 export function findNoteTagProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
   for (const { url: page, tags } of expected) {
@@ -89,14 +86,15 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
       problems.push({ page, message: `meta line links to ${describeTags(linked)}, expected ${describeTags(names)}` });
       continue;
     }
-    links.forEach((link, i) => {
+    // The links read as the Tags, in order, so each link is the Tag at its place.
+    for (const [i, link] of links.entries()) {
       const { name, url } = tags[i];
       const href = decodeURIComponent(link.getAttribute('href') ?? '');
-      if (href === url) return;
+      if (href === url) continue;
       const title = expected.find((other) => other.url === href)?.title;
       if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
       else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${title}"` });
-    });
+    }
   }
   return problems;
 }
