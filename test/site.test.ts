@@ -4,7 +4,7 @@ import { before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import config from '../astro.config.mjs';
 import { siteLanguage } from '../src/site-language.ts';
-import { findBrokenLinks } from './built-site.ts';
+import { findBrokenLinks, readBuild, type Build } from './built-site.ts';
 import { readExpectedPages, type ExpectedPage } from './expected-pages.ts';
 import { findFeedProblems } from './feed.ts';
 import {
@@ -14,8 +14,6 @@ import {
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
-  readBuild,
-  type Build,
   type PageProblem,
 } from './pages.ts';
 
@@ -31,8 +29,8 @@ before(async () => {
   build = await readBuild(buildDir);
 });
 
-test('every internal link and asset reference points to something in the build', async () => {
-  const broken = await findBrokenLinks(buildDir, config.site!);
+test('every internal link and asset reference points to something in the build', () => {
+  const broken = findBrokenLinks(build, config.site!);
 
   assert.deepEqual(
     broken,
@@ -77,8 +75,8 @@ test('the Tags listing shows every Tag that has Notes, by name, with its Note co
   assert.deepEqual(problems, [], `Tags listing problems:\n${listed(problems)}`);
 });
 
-test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', async () => {
-  const problems = await findFeedProblems(buildDir, config.site!, expectedPages);
+test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', () => {
+  const problems = findFeedProblems(build, config.site!, expectedPages);
 
   assert.deepEqual(
     problems,

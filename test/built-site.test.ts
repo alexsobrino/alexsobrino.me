@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { findBrokenLinks } from './built-site.ts';
+import { findBrokenLinks, readBuild } from './built-site.ts';
 import { fakeFolder } from './fake-folder.ts';
 
 const site = 'https://alexsobrino.me';
@@ -10,7 +10,7 @@ test('reports a link to a page that is not built, naming the page and the link',
     'index.html': '<a href="/notes/missing/">Missing</a>',
   });
 
-  assert.deepEqual(await findBrokenLinks(dir, site), [
+  assert.deepEqual(findBrokenLinks(await readBuild(dir), site), [
     { page: '/', link: '/notes/missing/' },
   ]);
 });
@@ -23,7 +23,7 @@ test('accepts links to built pages and files', async () => {
     '_astro/site.css': 'body {}',
   });
 
-  assert.deepEqual(await findBrokenLinks(dir, site), []);
+  assert.deepEqual(findBrokenLinks(await readBuild(dir), site), []);
 });
 
 test('skips external links but checks absolute links to the site itself', async () => {
@@ -37,7 +37,7 @@ test('skips external links but checks absolute links to the site itself', async 
     ].join(''),
   });
 
-  assert.deepEqual(await findBrokenLinks(dir, site), [
+  assert.deepEqual(findBrokenLinks(await readBuild(dir), site), [
     { page: '/', link: 'https://alexsobrino.me/gone/' },
   ]);
 });
@@ -53,7 +53,7 @@ test('checks asset references in src and srcset', async () => {
     '_astro/small.avif': '',
   });
 
-  assert.deepEqual(await findBrokenLinks(dir, site), [
+  assert.deepEqual(findBrokenLinks(await readBuild(dir), site), [
     { page: '/', link: '/_astro/photo@2x.webp' },
     { page: '/', link: '/_astro/gone.js' },
     { page: '/', link: '/_astro/large.avif' },
@@ -76,7 +76,7 @@ test('resolves relative links, fragments, queries and non-ASCII slugs like a bro
     'rss.xml': '',
   });
 
-  assert.deepEqual(await findBrokenLinks(dir, site), [
+  assert.deepEqual(findBrokenLinks(await readBuild(dir), site), [
     { page: '/notes/', link: 'otro/' },
   ]);
 });

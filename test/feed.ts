@@ -1,7 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
-import { isBuilt } from './built-site.ts';
+import { isBuilt, type Build } from './built-site.ts';
 import type { ExpectedNote, ExpectedPage } from './expected-pages.ts';
 
 export type FeedProblem = { item: string; message: string };
@@ -19,11 +17,10 @@ const parser = new XMLParser({
 type NotePage = { url: string; note: ExpectedNote; tagNames: string[] };
 
 /** Everything wrong with the built RSS feed, checked against the expected Note pages it should link to. */
-export async function findFeedProblems(buildDir: string, site: string, expected: ExpectedPage[]): Promise<FeedProblem[]> {
+export function findFeedProblems(build: Build, site: string, expected: ExpectedPage[]): FeedProblem[] {
   const origin = new URL(site).origin;
-  const xml = await readFile(join(buildDir, 'rss.xml'), 'utf8').catch(() => undefined);
-  if (xml === undefined) return [{ item: 'feed', message: 'rss.xml is not in the build' }];
-  const channel = parser.parse(xml).rss?.channel;
+  if (build.feed === undefined) return [{ item: 'feed', message: 'rss.xml is not in the build' }];
+  const channel = parser.parse(build.feed).rss?.channel;
   if (channel === undefined) return [{ item: 'feed', message: 'rss.xml is not RSS: it has no <rss><channel>' }];
 
   const problems: FeedProblem[] = [];
@@ -43,9 +40,7 @@ export async function findFeedProblems(buildDir: string, site: string, expected:
     const url = new URL(link, site);
     if (!URL.canParse(link)) report(`link is relative, expected an absolute URL on ${origin}`);
     else if (url.origin !== origin) report(`link is not on ${origin}`);
-    else if (!(await isBuilt(buildDir, decodeURIComponent(url.pathname)))) {
-      report(`links to ${url.pathname}, which is not built`);
-    }
+    else if (!isBuilt(build, url.pathname)) report(`links to ${url.pathname}, which is not built`);
 
     const page = notePagesByUrl.get(decodeURIComponent(url.pathname));
     if (page === undefined) {
