@@ -49,12 +49,12 @@ const taggedNotes: ContentNote[] = [
 
 // The Note "reto" is in English, on a site in Spanish.
 const expectedPages: ExpectedPage[] = [
-  { url: '/', prompt: '~ $ whoami', lang: 'es' },
-  { url: '/notes/', prompt: '~/notes $ ls', lang: 'es' },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto', lang: 'es', contentLang: 'en' },
-  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', lang: 'es' },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', lang: 'es' },
-  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', lang: 'es', contentLang: 'es' },
+  { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en' },
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es' },
+  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
 ];
 
 test('accepts a build with every expected page, leaving any other pages to the extra-page check', async () => {
@@ -232,16 +232,16 @@ const pragmaticTag = { name: 'The Pragmatic Programmer', url: '/notes/tags/the-p
 
 /** Expected Note pages with their Tags, and the Tag pages they link to. */
 const noteTagPages: ExpectedPage[] = [
-  { url: '/notes/hola/', prompt: '~/notes $ cat hola', lang: 'es', contentLang: 'es', tags: [] },
-  { url: '/notes/libros/', prompt: '~/notes $ cat libros', lang: 'es', contentLang: 'es', tags: [libroTag, pragmaticTag] },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto', lang: 'es', contentLang: 'es', tags: [libroTag] },
+  { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', contentLang: 'es', tags: [] },
+  { url: '/notes/libros/', prompt: '~/notes $ cat libros', siteLang: 'es', contentLang: 'es', tags: [libroTag, pragmaticTag] },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en', tags: [libroTag] },
   {
     url: '/notes/tags/the-pragmatic-programmer/',
     prompt: '~/notes/tags/the-pragmatic-programmer $ ls',
-    lang: 'es',
+    siteLang: 'es',
     title: 'The Pragmatic Programmer',
   },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', lang: 'es', title: 'Un libro al mes' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
 ];
 
 test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
@@ -266,8 +266,8 @@ test('accepts a Tag link whose URL is encoded, as the build writes a non-ASCII s
   );
 
   const expected: ExpectedPage[] = [
-    { url: '/notes/año/', prompt: '~/notes $ cat año', lang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', lang: 'es', title: 'Año' },
+    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   ];
 
   assert.deepEqual(findNoteTagProblems(expected, build), []);

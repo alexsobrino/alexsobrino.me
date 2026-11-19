@@ -12,19 +12,19 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
   });
 
   assert.deepEqual(await readExpectedPages(dir, 'es'), [
-    { url: '/', prompt: '~ $ whoami', lang: 'es' },
-    { url: '/notes/', prompt: '~/notes $ ls', lang: 'es' },
-    { url: '/notes/hola/', prompt: '~/notes $ cat hola', lang: 'es', contentLang: 'es', tags: [] },
+    { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
+    { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+    { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', contentLang: 'es', tags: [] },
     {
       url: '/notes/reto/',
       prompt: '~/notes $ cat reto',
-      lang: 'es',
+      siteLang: 'es',
       contentLang: 'es',
       tags: [{ name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' }],
     },
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', lang: 'es' },
-    { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', lang: 'es', title: 'Un libro al mes' },
-    { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', lang: 'es', contentLang: 'es' },
+    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+    { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
+    { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
   ]);
 });
 
@@ -36,15 +36,15 @@ test('gives every page the site language, and a Note or Side Project page also i
     'tags.yml': '',
   });
 
-  const languages = (await readExpectedPages(dir, 'es')).map(({ url, lang, contentLang }) => ({ url, lang, contentLang }));
+  const languages = (await readExpectedPages(dir, 'es')).map(({ url, siteLang, contentLang }) => ({ url, siteLang, contentLang }));
 
   assert.deepEqual(languages, [
-    { url: '/', lang: 'es', contentLang: undefined },
-    { url: '/notes/', lang: 'es', contentLang: undefined },
-    { url: '/notes/hello/', lang: 'es', contentLang: 'en' },
-    { url: '/notes/hola/', lang: 'es', contentLang: 'es' },
-    { url: '/notes/tags/', lang: 'es', contentLang: undefined },
-    { url: '/side-projects/tool/', lang: 'es', contentLang: 'en' },
+    { url: '/', siteLang: 'es', contentLang: undefined },
+    { url: '/notes/', siteLang: 'es', contentLang: undefined },
+    { url: '/notes/hello/', siteLang: 'es', contentLang: 'en' },
+    { url: '/notes/hola/', siteLang: 'es', contentLang: 'es' },
+    { url: '/notes/tags/', siteLang: 'es', contentLang: undefined },
+    { url: '/side-projects/tool/', siteLang: 'es', contentLang: 'en' },
   ]);
 });
 
@@ -72,8 +72,8 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
   const tagPages = (await readExpectedPages(dir, 'es')).filter(({ url }) => url.startsWith('/notes/tags/'));
 
   assert.deepEqual(tagPages, [
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', lang: 'es' },
-    { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls', lang: 'es', title: 'Un libro al mes' },
+    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+    { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls', siteLang: 'es', title: 'Un libro al mes' },
   ]);
 });
 
@@ -86,7 +86,7 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
   const pages = (await readExpectedPages(dir, 'es')).filter(({ url }) => url.includes('año'));
 
   assert.deepEqual(pages, [
-    { url: '/notes/año/', prompt: '~/notes $ cat año', lang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', lang: 'es', title: 'Año' },
+    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   ]);
 });

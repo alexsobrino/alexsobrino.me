@@ -49,10 +49,10 @@ export function findPromptProblems(expected: ExpectedPage[], build: Build): Page
 /** Every expected page in the build whose <html lang> isn't its site language, and every Note or Side Project page whose <article lang> isn't that piece's Content language. A page not in the build is left to findMissingPages. */
 export function findLanguageProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
-  for (const { url: page, lang, contentLang } of expected) {
+  for (const { url: page, siteLang, contentLang } of expected) {
     const html = build.get(page);
     if (html === undefined) continue;
-    const htmlProblem = langProblem('<html>', html.querySelector('html'), lang);
+    const htmlProblem = langProblem('<html>', html.querySelector('html'), siteLang);
     if (htmlProblem !== undefined) problems.push({ page, message: htmlProblem });
     if (contentLang === undefined) continue;
     const articleProblem = langProblem('<article>', html.querySelector('article'), contentLang);
