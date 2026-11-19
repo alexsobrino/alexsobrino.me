@@ -3,7 +3,7 @@ import { relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { parse, type HTMLElement } from 'node-html-parser';
 import { htmlFiles, pageUrl } from './built-site.ts';
-import { tagNames, type Content, type ContentNote } from './content.ts';
+import { tagNames, type ContentNote } from './content.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 
 export type PageProblem = { page: string; message: string };
@@ -23,9 +23,6 @@ export function findExtraPages(expected: ExpectedPage[], build: Build): PageProb
     .filter((page) => !expectedUrls.has(page))
     .map((page) => ({ page, message: 'is in the build, but the content calls for no such page' }));
 }
-
-/** The Note or Side Project an inner page shows, as its URL says. */
-type Piece = { kind: 'Note' | 'Side Project'; id: string };
 
 /** A Tag page's URL, /notes/tags/<id>/. */
 const tagPageUrl = /^\/notes\/tags\/([^/]+)\/$/;
@@ -49,22 +46,16 @@ export function findPromptProblems(expected: ExpectedPage[], build: Build): Page
   return problems;
 }
 
-/** Every page whose <html lang> isn't the site language, and every Note or Side Project page whose <article lang> isn't that piece's Content language. */
-export async function findLanguageProblems(buildDir: string, siteLanguage: string, content: Content): Promise<PageProblem[]> {
+/** Every expected page in the build whose <html lang> isn't its site language, and every Note or Side Project page whose <article lang> isn't that piece's Content language. A page not in the build is left to findMissingPages. */
+export function findLanguageProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
-  for (const { page, html } of await builtPages(buildDir)) {
-    const htmlProblem = langProblem('<html>', html.querySelector('html'), siteLanguage);
+  for (const { url: page, lang, contentLang } of expected) {
+    const html = build.get(page);
+    if (html === undefined) continue;
+    const htmlProblem = langProblem('<html>', html.querySelector('html'), lang);
     if (htmlProblem !== undefined) problems.push({ page, message: htmlProblem });
-
-    const piece = pieceOf(page);
-    if (piece === undefined) continue;
-    const pieces = piece.kind === 'Note' ? content.notes : content.sideProjects;
-    const expected = pieces.find(({ id }) => id === piece.id)?.lang;
-    if (expected === undefined) {
-      problems.push({ page, message: `no ${piece.kind} "${piece.id}" in the content` });
-      continue;
-    }
-    const articleProblem = langProblem('<article>', html.querySelector('article'), expected);
+    if (contentLang === undefined) continue;
+    const articleProblem = langProblem('<article>', html.querySelector('article'), contentLang);
     if (articleProblem !== undefined) problems.push({ page, message: articleProblem });
   }
   return problems;
@@ -179,12 +170,4 @@ export async function readBuild(buildDir: string): Promise<Build> {
 /** Every built page, parsed, in URL order. */
 async function builtPages(buildDir: string): Promise<{ page: string; html: HTMLElement }[]> {
   return [...(await readBuild(buildDir))].map(([page, html]) => ({ page, html }));
-}
-
-/** The Note or Side Project a page shows, from its URL; nothing for other pages, like the Tags listing at /notes/tags/. */
-function pieceOf(page: string): Piece | undefined {
-  const note = page.match(/^\/notes\/([^/]+)\/$/)?.[1];
-  if (note !== undefined && note !== 'tags') return { kind: 'Note', id: note };
-  const sideProject = page.match(/^\/side-projects\/([^/]+)\/$/)?.[1];
-  if (sideProject !== undefined) return { kind: 'Side Project', id: sideProject };
 }
