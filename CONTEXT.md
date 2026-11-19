@@ -16,6 +16,10 @@ _Avoid_: Category, Label
 Something Alex has built independently and shows on the site. Each one has its own page and is featured on the home page with a picture, unlike Notes. Earning money doesn't make it something else; work done for an employer or client is not a Side Project.
 _Avoid_: Project, Portfolio item, Work, Product
 
+**Piece**:
+A Note or a Side Project: what the site publishes as a single Markdown file in its own Content language, shown on a page of its own.
+_Avoid_: Item, Content, Entry
+
 **Retired**:
 A Side Project that no longer runs. It keeps its page and card, loses its outbound link and is labelled as retired instead of being removed.
 _Avoid_: Archived, Dead, Discontinued

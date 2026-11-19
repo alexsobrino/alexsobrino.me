@@ -2,7 +2,8 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 // Everything the site knows about presenting a Side Project: its order. Where it lives is the site
 // map's (see site-map.ts).
-// How a Retired one looks lives in SideProjectStatus and SideProjectList.
+// How a Retired one looks lives in SideProjectStatus and SideProjectList, and its page leaves out
+// the outbound link.
 
 export type SideProject = CollectionEntry<'sideProjects'>;
 
