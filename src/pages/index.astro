@@ -7,6 +7,7 @@ import SideProjectList from '../components/SideProjectList.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getNotesNewestFirst } from '../notes';
 import { getSideProjectsRunningFirst } from '../side-projects';
+import { notesListingPlace } from '../site-map';
 
 const sideProjects = await getSideProjectsRunningFirst();
 const latestNotes = (await getNotesNewestFirst()).slice(0, 5);
@@ -31,7 +32,7 @@ const year = new Date().getFullYear();
         <section class="section" aria-labelledby="notes-title">
           <h2 class="section__title" id="notes-title">Notas</h2>
           <NoteList notes={latestNotes} />
-          <a class="more" href="/notes/">Todas las notas →</a>
+          <a class="more" href={notesListingPlace.url}>Todas las notas →</a>
         </section>
       )
     }

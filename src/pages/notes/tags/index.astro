@@ -1,11 +1,12 @@
 ---
 import InnerPageLayout from '../../../layouts/InnerPageLayout.astro';
-import { getTagsAlphabetically, tagUrl } from '../../../notes';
+import { getTagsAlphabetically } from '../../../notes';
+import { tagPlace, tagsListingPlace } from '../../../site-map';
 
 const tags = await getTagsAlphabetically();
 ---
 
-<InnerPageLayout title="Etiquetas" command="ls" back={{ href: '/notes/', label: 'notas' }}>
+<InnerPageLayout title="Etiquetas" place={tagsListingPlace}>
   <h1 class="page-title">Etiquetas</h1>
   {
     tags.length === 0 ? (
@@ -14,7 +15,7 @@ const tags = await getTagsAlphabetically();
       <ul class="tags prose">
         {tags.map(({ tag, noteCount }) => (
           <li class="tag">
-            <a href={tagUrl(tag)}>{tag.data.name}</a> <span class="tag__count">· {noteCount}</span>
+            <a href={tagPlace(tag).url}>{tag.data.name}</a> <span class="tag__count">· {noteCount}</span>
           </li>
         ))}
       </ul>

@@ -1,15 +1,12 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 
-// Everything the site knows about presenting a Side Project: where it lives and its order.
+// Everything the site knows about presenting a Side Project: its order. Where it lives is the site
+// map's (see site-map.ts).
 // How a Retired one looks lives in SideProjectStatus and SideProjectList.
 
 export type SideProject = CollectionEntry<'sideProjects'>;
 
-export function sideProjectUrl(sideProject: SideProject) {
-  return `/side-projects/${sideProject.id}/`;
-}
-
-// Static paths for the Side Project pages; they must produce the URLs sideProjectUrl() links to.
+// Static paths for the Side Project pages; they must produce the URLs sideProjectPlace() gives.
 export async function getSideProjectPaths() {
   const sideProjects = await getCollection('sideProjects');
   return sideProjects.map((sideProject) => ({ params: { id: sideProject.id }, props: { sideProject } }));

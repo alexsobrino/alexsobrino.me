@@ -1,7 +1,8 @@
 ---
 import { Image } from 'astro:assets';
 import SideProjectStatus from './SideProjectStatus.astro';
-import { sideProjectUrl, type SideProject } from '../side-projects';
+import type { SideProject } from '../side-projects';
+import { sideProjectPlace } from '../site-map';
 
 interface Props {
   sideProjects: SideProject[];
@@ -19,7 +20,7 @@ const { sideProjects } = Astro.props;
         </figure>
         <div>
           <h3 class="project__name">
-            <a class="project__link" href={sideProjectUrl(sideProject)}>{sideProject.id}</a>
+            <a class="project__link" href={sideProjectPlace(sideProject).url}>{sideProject.id}</a>
           </h3>
           <p class="project__desc">{sideProject.data.summary}</p>
         </div>

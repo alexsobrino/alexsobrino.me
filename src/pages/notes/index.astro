@@ -2,13 +2,14 @@
 import NoteList from '../../components/NoteList.astro';
 import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
 import { getNotesNewestFirst } from '../../notes';
+import { notesListingPlace, tagsListingPlace } from '../../site-map';
 
 const notes = await getNotesNewestFirst();
 ---
 
-<InnerPageLayout title="Notas" command="ls" back={{ href: '/', label: 'inicio' }}>
+<InnerPageLayout title="Notas" place={notesListingPlace}>
   <h1 class="page-title">Notas</h1>
-  <p class="page-meta"><a href="/notes/tags/">Por etiqueta</a></p>
+  <p class="page-meta"><a href={tagsListingPlace.url}>Por etiqueta</a></p>
   {
     notes.length === 0 ? (
       <p class="empty">Todavía no hay notas.</p>
