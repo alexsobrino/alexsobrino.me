@@ -614,8 +614,8 @@ test('reports a Note a listing lists though it should not, or lists twice, and a
   const holaPage: ExpectedPage = { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', documentTitle: 'Hola · Alex Sobrino', contentLang: 'es', note: { id: 'hola', date: hola.date } };
 
   assert.deepEqual(findNoteListProblems([...noteListPages, holaPage], build), [
-    { page: '/notes/', message: 'lists "Otra", linking to /notes/otra/, which is no Note' },
-    { page: '/notes/', message: 'lists "Etiquetas", linking to /notes/tags/, which is no Note' },
+    { page: '/notes/', message: 'lists "Otra", linking to /notes/otra/, which is no Note page' },
+    { page: '/notes/', message: 'lists "Etiquetas", linking to /notes/tags/, which is no Note page' },
     { page: '/notes/tags/año/', message: 'lists item 2 with no link' },
     { page: '/notes/tags/un-libro-al-mes/', message: 'lists Note "hola", which it should not' },
     { page: '/notes/tags/un-libro-al-mes/', message: 'lists Note "reto" twice' },

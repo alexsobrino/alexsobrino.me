@@ -40,7 +40,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
     for (const id of new Set(note.tags.map(({ id }) => id))) noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
   }
   // Newest first, as every listing of Notes shows them.
-  const listedNotes = notes
+  const notesNewestFirst = notes
     .map(({ id, date, tags }) => ({ note: { id, date, url: notePageUrl(id) }, tagIds: new Set(tags.map(({ id }) => id)) }))
     .sort((a, b) => b.note.date.valueOf() - a.note.date.valueOf());
   const tagRows = [...tagNamesById]
@@ -53,7 +53,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
       prompt: '~/notes $ ls',
       siteLang,
       documentTitle: documentTitle('Notas'),
-      listedNotes: listedNotes.map(({ note }) => note),
+      listedNotes: notesNewestFirst.map(({ note }) => note),
     },
     ...notes.map(({ id, title, date, tags, lang: contentLang }) => ({
       url: notePageUrl(id),
@@ -71,7 +71,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
       siteLang,
       documentTitle: documentTitle(name),
       title: name,
-      listedNotes: listedNotes.filter(({ tagIds }) => tagIds.has(id)).map(({ note }) => note),
+      listedNotes: notesNewestFirst.filter(({ tagIds }) => tagIds.has(id)).map(({ note }) => note),
     })),
     ...sideProjects.map(({ id, name, lang: contentLang }) => ({
       url: `/side-projects/${id}/`,

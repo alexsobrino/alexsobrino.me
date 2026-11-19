@@ -65,7 +65,7 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
     // The links read as the Tags, in order, so each link is the Tag at its place.
     for (const [i, link] of links.entries()) {
       const { name, url } = tags[i];
-      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const href = hrefOf(link);
       if (href === url) continue;
       const title = expected.find((other) => other.url === href)?.title;
       if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
@@ -98,7 +98,7 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
         continue;
       }
       const name = textOf(link);
-      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const href = hrefOf(link);
       // A Tag that shouldn't be listed at all is already reported above.
       const row = rows.find((row) => row.name === name);
       if (row !== undefined && href !== row.url) {
@@ -128,11 +128,11 @@ export function findNoteListProblems(expected: ExpectedPage[], build: Build): Pa
         problems.push({ page, message: `lists item ${index + 1} with no link` });
         continue;
       }
-      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const href = hrefOf(link);
       const note = expectedByUrl.get(href);
       if (note === undefined) {
         const id = noteIdsByUrl.get(href);
-        if (id === undefined) problems.push({ page, message: `lists "${textOf(link)}", linking to ${href}, which is no Note` });
+        if (id === undefined) problems.push({ page, message: `lists "${textOf(link)}", linking to ${href}, which is no Note page` });
         else problems.push({ page, message: `lists Note "${id}", which it should not` });
         continue;
       }
@@ -184,6 +184,11 @@ function findTextProblems(
     if (problem !== undefined) problems.push({ page: expectedPage.url, message: problem });
   }
   return problems;
+}
+
+/** Where a link goes, decoded, as Expected pages write a URL: the build encodes a non-ASCII slug. */
+function hrefOf(link: HTMLElement): string {
+  return decodeURIComponent(link.getAttribute('href') ?? '');
 }
 
 /** A date as YYYY-MM-DD. */
