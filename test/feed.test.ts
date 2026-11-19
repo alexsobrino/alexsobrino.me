@@ -1,24 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { ExpectedPage } from './expected-pages.ts';
+import type { ExpectedPage, ExpectedTag } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 import { findFeedProblems } from './feed.ts';
 
 const site = 'https://alexsobrino.me';
 
 /** An expected Note page at this URL, showing the Note with this slug and date and these Tags. */
-function notePage(url: string, id: string, date: string, tags: string[] = []): ExpectedPage {
-  return {
-    url,
-    prompt: `~/notes $ cat ${id}`,
-    siteLang: 'es',
-    contentLang: 'es',
-    tags: tags.map((name) => ({ name, url: `/notes/tags/${name}/` })),
-    note: { id, date: new Date(date) },
-  };
+function notePage(url: string, id: string, date: string, tags: ExpectedTag[] = []): ExpectedPage {
+  return { url, prompt: `~/notes $ cat ${id}`, siteLang: 'es', contentLang: 'es', tags, note: { id, date: new Date(date) } };
 }
 
-const reto = notePage('/notes/reto/', 'reto', '2026-10-02', ['Un libro al mes', 'Retos & más']);
+const reto = notePage('/notes/reto/', 'reto', '2026-10-02', [
+  { name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' },
+  { name: 'Retos & más', url: '/notes/tags/retos/' },
+]);
 const hola = notePage('/notes/hola/', 'hola', '2026-09-01');
 const home: ExpectedPage = { url: '/', prompt: '~ $ whoami', siteLang: 'es' };
 
@@ -80,18 +76,18 @@ test('reports a Note with no item, an item for no Note and a Note with two items
 });
 
 test("finds an item's Note by its expected page URL, whatever shape that URL has", async () => {
-  const notas = notePage('/notas/reto/', 'reto', '2026-10-02');
+  const writing = notePage('/writing/reto/', 'reto', '2026-10-02');
   const dir = await fakeFolder({
     'rss.xml':
       '<rss version="2.0"><channel>' +
-      '<item><link>https://alexsobrino.me/notas/reto/</link></item>' +
+      '<item><link>https://alexsobrino.me/writing/reto/</link></item>' +
       '<item><link>https://alexsobrino.me/notes/reto/</link></item>' +
       '</channel></rss>',
-    'notas/reto/index.html': '',
+    'writing/reto/index.html': '',
     'notes/reto/index.html': '',
   });
 
-  assert.deepEqual(await findFeedProblems(dir, site, [notas]), [
+  assert.deepEqual(await findFeedProblems(dir, site, [writing]), [
     { item: 'item 2 (https://alexsobrino.me/notes/reto/)', message: 'links to /notes/reto/, which is no Note' },
   ]);
 });

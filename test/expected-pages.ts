@@ -12,7 +12,7 @@ export type ExpectedTagRow = ExpectedTag & { noteCount: number };
 /** The Note a Note page shows: its slug and date. */
 export type ExpectedNote = { id: string; date: Date };
 
-/** A page the build should have: its URL, as the build names its folder, its prompt and its site language; a Note or Side Project page also its Content language, a Note page its Tags, in the Note's order, and its Note, a Tag page its title, and the Tags listing its rows. */
+/** A page the build should have: its URL, as the build names its folder, its prompt and its site language. A Note or Side Project page also has its Content language; a Note page its Note and that Note's Tags, in the Note's order; a Tag page its title; and the Tags listing its rows. */
 export type ExpectedPage = {
   url: string;
   prompt: string;
