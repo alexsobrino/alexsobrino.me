@@ -16,6 +16,14 @@ export function findMissingPages(expected: ExpectedPage[], build: Build): PagePr
   return expected.filter(({ url }) => !build.has(url)).map(({ url }) => ({ page: url, message: 'is not in the build' }));
 }
 
+/** Every built page that no expected page accounts for, such as a stale Tag page or a Note page under a slug the content doesn't have. */
+export function findExtraPages(expected: ExpectedPage[], build: Build): PageProblem[] {
+  const expectedUrls = new Set(expected.map(({ url }) => url));
+  return [...build.keys()]
+    .filter((page) => !expectedUrls.has(page))
+    .map((page) => ({ page, message: 'is in the build, but the content calls for no such page' }));
+}
+
 /** The Note or Side Project an inner page shows, as its URL says. */
 type Piece = { kind: 'Note' | 'Side Project'; id: string };
 

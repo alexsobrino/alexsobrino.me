@@ -4,6 +4,7 @@ import type { Content, ContentNote } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
+  findExtraPages,
   findLanguageProblems,
   findMissingPages,
   findNoteTagProblems,
@@ -64,7 +65,7 @@ const expectedPages: ExpectedPage[] = [
   { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar' },
 ];
 
-test('accepts a build with every expected page, whatever else it has', async () => {
+test('accepts a build with every expected page, leaving any other pages to the extra-page check', async () => {
   const build = await readBuild(
     await fakeFolder({
       'index.html': '',
@@ -94,6 +95,41 @@ test('reports each expected page that is not in the build, naming the page', asy
     { page: '/notes/reto/', message: 'is not in the build' },
     { page: '/notes/tags/un-libro-al-mes/', message: 'is not in the build' },
   ]);
+});
+
+test('reports each built page that no expected page accounts for, naming the page', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '',
+      'notes/index.html': '',
+      'notes/reto/index.html': '',
+      'notes/otro/index.html': '',
+      'notes/tags/index.html': '',
+      'notes/tags/un-libro-al-mes/index.html': '',
+      'notes/tags/sin-notas/index.html': '',
+      'side-projects/sub9bar/index.html': '',
+      'side-projects/otro/index.html': '',
+    }),
+  );
+
+  assert.deepEqual(findExtraPages(expectedPages, build), [
+    { page: '/notes/otro/', message: 'is in the build, but the content calls for no such page' },
+    { page: '/notes/tags/sin-notas/', message: 'is in the build, but the content calls for no such page' },
+    { page: '/side-projects/otro/', message: 'is in the build, but the content calls for no such page' },
+  ]);
+});
+
+test('reads only pages from the build, so the RSS feed and assets are never reported as extra pages', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '',
+      'rss.xml': '<rss></rss>',
+      '_astro/BaseLayout.css': 'body {}',
+      '_astro/alex.webp': '',
+    }),
+  );
+
+  assert.deepEqual(findExtraPages(expectedPages, build), []);
 });
 
 test('accepts expected pages whose prompt reads as expected', async () => {
