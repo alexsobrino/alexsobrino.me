@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Content, ContentNote } from './content.ts';
+import type { ContentNote } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
@@ -31,15 +31,6 @@ function tagPage(name: string): string {
 
 const siteLanguage = 'es';
 const libro = { id: 'un-libro-al-mes', name: 'Un libro al mes' };
-const pragmatic = { id: 'the-pragmatic-programmer', name: 'The Pragmatic Programmer' };
-const content: Content = {
-  notes: [
-    { id: 'reto', date: new Date('2026-10-02'), tags: [libro], lang: 'en' },
-    { id: 'libros', date: new Date('2026-11-02'), tags: [libro, pragmatic], lang: 'es' },
-    { id: 'hola', date: new Date('2026-09-01'), tags: [], lang: 'es' },
-  ],
-  sideProjects: [{ id: 'sub9bar', lang: 'es' }],
-};
 
 /** The Tags listing as the page renders it: one item per Tag, its name linking to its page, then its Note count. */
 function tagListing(items: { name: string; href?: string; count: number }[]): string {
@@ -56,13 +47,14 @@ const taggedNotes: ContentNote[] = [
   { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
 ];
 
+// The Note "reto" is in English, on a site in Spanish.
 const expectedPages: ExpectedPage[] = [
-  { url: '/', prompt: '~ $ whoami' },
-  { url: '/notes/', prompt: '~/notes $ ls' },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto' },
-  { url: '/notes/tags/', prompt: '~/notes/tags $ ls' },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls' },
-  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar' },
+  { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en' },
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es' },
+  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
 ];
 
 test('accepts a build with every expected page, leaving any other pages to the extra-page check', async () => {
@@ -178,54 +170,60 @@ test('reports an expected page with no prompt, leaving pages not in the build to
   ]);
 });
 
-test('accepts pages in the site language, with each Note and Side Project in its own Content language', async () => {
-  const dir = await fakeFolder({
-    'index.html': '<html lang="es"><body></body></html>',
-    'notes/index.html': '<html lang="es"><body></body></html>',
-    'notes/reto/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
-    'notes/tags/index.html': '<html lang="es"><body></body></html>',
-    'notes/tags/un-libro-al-mes/index.html': '<html lang="es"><body></body></html>',
-    'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
-  });
+test('accepts expected pages in the site language, with each Note and Side Project in its own Content language', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '<html lang="es"><body></body></html>',
+      'notes/index.html': '<html lang="es"><body></body></html>',
+      'notes/reto/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
+      'notes/tags/index.html': '<html lang="es"><body></body></html>',
+      'notes/tags/un-libro-al-mes/index.html': '<html lang="es"><body></body></html>',
+      'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
+    }),
+  );
 
-  assert.deepEqual(await findLanguageProblems(dir, siteLanguage, content), []);
+  assert.deepEqual(findLanguageProblems(expectedPages, build), []);
 });
 
-test('reports a page whose <html lang> is missing or not the site language', async () => {
-  const dir = await fakeFolder({
-    'index.html': '<html lang="en"><body></body></html>',
-    'notes/index.html': '<html><body></body></html>',
-  });
+test('reports an expected page whose <html lang> is missing or not the site language', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': '<html lang="en"><body></body></html>',
+      'notes/index.html': '<html><body></body></html>',
+      'notes/tags/index.html': '<body></body>',
+    }),
+  );
 
-  assert.deepEqual(await findLanguageProblems(dir, siteLanguage, content), [
+  assert.deepEqual(findLanguageProblems(expectedPages, build), [
     { page: '/', message: '<html> has lang "en", expected "es"' },
     { page: '/notes/', message: '<html> has no lang, expected "es"' },
+    { page: '/notes/tags/', message: 'no <html>, expected one with lang "es"' },
   ]);
 });
 
-test('reports a Note or Side Project whose <article lang> is missing or not its Content language', async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': '<html lang="es"><body><article></article></body></html>',
-    'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
-  });
+test('reports a Note or Side Project page whose <article lang> is missing or not its Content language', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': '<html lang="es"><body><article></article></body></html>',
+      'side-projects/sub9bar/index.html': '<html lang="es"><body><article lang="en"></article></body></html>',
+    }),
+  );
 
-  assert.deepEqual(await findLanguageProblems(dir, siteLanguage, content), [
+  assert.deepEqual(findLanguageProblems(expectedPages, build), [
     { page: '/notes/reto/', message: '<article> has no lang, expected "en"' },
     { page: '/side-projects/sub9bar/', message: '<article> has lang "en", expected "es"' },
   ]);
 });
 
-test('reports a Note or Side Project page with no <article>, or with no such piece in the content', async () => {
-  const dir = await fakeFolder({
-    'notes/reto/index.html': '<html lang="es"><body></body></html>',
-    'notes/otro/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
-    'side-projects/otro/index.html': '<html lang="es"><body><article lang="es"></article></body></html>',
-  });
+test('reports a Note or Side Project page with no <article>, leaving pages not in the build to the missing-page check', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/reto/index.html': '<html lang="es"><body></body></html>',
+    }),
+  );
 
-  assert.deepEqual(await findLanguageProblems(dir, siteLanguage, content), [
-    { page: '/notes/otro/', message: 'no Note "otro" in the content' },
+  assert.deepEqual(findLanguageProblems(expectedPages, build), [
     { page: '/notes/reto/', message: 'no <article>, expected one with lang "en"' },
-    { page: '/side-projects/otro/', message: 'no Side Project "otro" in the content' },
   ]);
 });
 
@@ -234,15 +232,16 @@ const pragmaticTag = { name: 'The Pragmatic Programmer', url: '/notes/tags/the-p
 
 /** Expected Note pages with their Tags, and the Tag pages they link to. */
 const noteTagPages: ExpectedPage[] = [
-  { url: '/notes/hola/', prompt: '~/notes $ cat hola', tags: [] },
-  { url: '/notes/libros/', prompt: '~/notes $ cat libros', tags: [libroTag, pragmaticTag] },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto', tags: [libroTag] },
+  { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', contentLang: 'es', tags: [] },
+  { url: '/notes/libros/', prompt: '~/notes $ cat libros', siteLang: 'es', contentLang: 'es', tags: [libroTag, pragmaticTag] },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en', tags: [libroTag] },
   {
     url: '/notes/tags/the-pragmatic-programmer/',
     prompt: '~/notes/tags/the-pragmatic-programmer $ ls',
+    siteLang: 'es',
     title: 'The Pragmatic Programmer',
   },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', title: 'Un libro al mes' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
 ];
 
 test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
@@ -267,8 +266,8 @@ test('accepts a Tag link whose URL is encoded, as the build writes a non-ASCII s
   );
 
   const expected: ExpectedPage[] = [
-    { url: '/notes/año/', prompt: '~/notes $ cat año', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', title: 'Año' },
+    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   ];
 
   assert.deepEqual(findNoteTagProblems(expected, build), []);

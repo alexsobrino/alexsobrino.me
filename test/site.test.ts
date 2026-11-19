@@ -30,7 +30,7 @@ let build: Build;
 before(async () => {
   assert.ok(existsSync(buildDir), `No build at ${buildDir}: run \`npm run build\` first.`);
   content = await readContent(contentDir);
-  expectedPages = await readExpectedPages(contentDir);
+  expectedPages = await readExpectedPages(contentDir, siteLanguage);
   build = await readBuild(buildDir);
 });
 
@@ -62,8 +62,8 @@ test('every expected page has the prompt it should', () => {
   assert.deepEqual(problems, [], `Wrong prompts:\n${listed(problems)}`);
 });
 
-test('every page is in the site language, and every Note and Side Project in its own Content language', async () => {
-  const problems = await findLanguageProblems(buildDir, siteLanguage, content);
+test('every expected page is in the site language, and every Note and Side Project in its own Content language', () => {
+  const problems = findLanguageProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Wrong languages:\n${listed(problems)}`);
 });
