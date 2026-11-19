@@ -11,8 +11,8 @@ import {
   findNoteListProblems,
   findNoteTagProblems,
   findPromptProblems,
+  findTagHeadingProblems,
   findTagListProblems,
-  findTagTitleProblems,
 } from './pages.ts';
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
@@ -243,9 +243,9 @@ const noteTagPages: ExpectedPage[] = [
     prompt: '~/notes/tags/the-pragmatic-programmer $ ls',
     siteLang: 'es',
     documentTitle: 'The Pragmatic Programmer · Alex Sobrino',
-    title: 'The Pragmatic Programmer',
+    heading: 'The Pragmatic Programmer',
   },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', documentTitle: 'Un libro al mes · Alex Sobrino', title: 'Un libro al mes' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', documentTitle: 'Un libro al mes · Alex Sobrino', heading: 'Un libro al mes' },
 ];
 
 test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
@@ -271,7 +271,7 @@ test('accepts a Tag link whose URL is encoded, as the build writes a non-ASCII s
 
   const expected: ExpectedPage[] = [
     { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', heading: 'Año' },
   ];
 
   assert.deepEqual(findNoteTagProblems(expected, build), []);
@@ -409,25 +409,25 @@ test('reports a Tag that does not link to its own Tag page', async () => {
   ]);
 });
 
-/** A Tag page as it renders its title, the Tag's name. */
-function tagPage(title: string): string {
-  return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul></ul></main></body></html>`;
+/** A Tag page as it renders its heading, the Tag's name. */
+function tagPage(heading: string): string {
+  return `<html lang="es"><body><main><h1 class="page-title">${heading}</h1><ul></ul></main></body></html>`;
 }
 
-/** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose title is no Tag's name. */
-const tagTitlePages: ExpectedPage[] = [
+/** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose heading is no Tag's name. */
+const tagHeadingPages: ExpectedPage[] = [
   { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', documentTitle: 'Etiquetas · Alex Sobrino', tagRows: [] },
-  { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
+  { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', heading: 'Año' },
   {
     url: '/notes/tags/un-libro-al-mes/',
     prompt: '~/notes/tags/un-libro-al-mes $ ls',
     siteLang: 'es',
     documentTitle: 'Un libro al mes · Alex Sobrino',
-    title: 'Un libro al mes',
+    heading: 'Un libro al mes',
   },
 ];
 
-test("accepts Tag pages titled with their Tag's name, however the title's whitespace runs, leaving other pages' titles alone", async () => {
+test("accepts Tag pages headed with their Tag's name, however the heading's whitespace runs, leaving other pages' headings alone", async () => {
   const build = await readBuild(
     await fakeFolder({
       'notes/tags/index.html': tagPage('Etiquetas'),
@@ -436,10 +436,10 @@ test("accepts Tag pages titled with their Tag's name, however the title's whites
     }),
   );
 
-  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), []);
+  assert.deepEqual(findTagHeadingProblems(tagHeadingPages, build), []);
 });
 
-test("reports a Tag page whose title isn't its Tag's name, naming the page", async () => {
+test("reports a Tag page whose heading isn't its Tag's name, naming the page", async () => {
   const build = await readBuild(
     await fakeFolder({
       'notes/tags/año/index.html': tagPage('Un libro al mes'),
@@ -447,21 +447,21 @@ test("reports a Tag page whose title isn't its Tag's name, naming the page", asy
     }),
   );
 
-  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
-    { page: '/notes/tags/año/', message: 'title reads "Un libro al mes", expected "Año"' },
-    { page: '/notes/tags/un-libro-al-mes/', message: 'title reads "Año", expected "Un libro al mes"' },
+  assert.deepEqual(findTagHeadingProblems(tagHeadingPages, build), [
+    { page: '/notes/tags/año/', message: 'heading reads "Un libro al mes", expected "Año"' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'heading reads "Año", expected "Un libro al mes"' },
   ]);
 });
 
-test('reports a Tag page with no title, leaving pages not in the build to the missing-page check', async () => {
+test('reports a Tag page with no heading, leaving pages not in the build to the missing-page check', async () => {
   const build = await readBuild(
     await fakeFolder({
       'notes/tags/año/index.html': '<html lang="es"><body><main><ul></ul></main></body></html>',
     }),
   );
 
-  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
-    { page: '/notes/tags/año/', message: 'no title, expected "Año"' },
+  assert.deepEqual(findTagHeadingProblems(tagHeadingPages, build), [
+    { page: '/notes/tags/año/', message: 'no heading, expected "Año"' },
   ]);
 });
 
@@ -520,12 +520,12 @@ test('reports a page with no document title, even with a title elsewhere on it, 
 });
 
 /** A listing of Notes as NoteList renders it: one item per Note, its date, then its title linking to its page. With no link, an item shows its title alone. */
-function noteListing(title: string, notes: { title: string; href?: string }[]): string {
+function noteListing(heading: string, notes: { title: string; href?: string }[]): string {
   const items = notes.map(({ title, href }) => {
     const name = href === undefined ? title : `<a href="${href}">${title}</a>`;
     return `<li class="note" lang="es"><time class="note__date" datetime="2026-10-02T00:00:00.000Z">2 oct 2026</time>${name}</li>`;
   });
-  return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul class="notes prose">${items.join('')}</ul></main></body></html>`;
+  return `<html lang="es"><body><main><h1 class="page-title">${heading}</h1><ul class="notes prose">${items.join('')}</ul></main></body></html>`;
 }
 
 const etica = { id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' };
@@ -540,7 +540,7 @@ const noteListPages: ExpectedPage[] = [
     prompt: '~/notes/tags/año $ ls',
     siteLang: 'es',
     documentTitle: 'Año · Alex Sobrino',
-    title: 'Año',
+    heading: 'Año',
     listedNotes: [{ id: 'año', date: new Date('2026-12-01'), url: '/notes/año/' }],
   },
   {
@@ -548,7 +548,7 @@ const noteListPages: ExpectedPage[] = [
     prompt: '~/notes/tags/un-libro-al-mes $ ls',
     siteLang: 'es',
     documentTitle: 'Un libro al mes · Alex Sobrino',
-    title: 'Un libro al mes',
+    heading: 'Un libro al mes',
     listedNotes: [etica, reto],
   },
 ];

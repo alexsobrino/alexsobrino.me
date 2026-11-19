@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readExpectedPages } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 
-test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts, languages, document titles and listed Notes', async () => {
+test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its heading, and each Side Project, with their prompts, languages, document titles and listed Notes', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [un-libro-al-mes]\n---\n',
     'notes/hola.md': '---\ntitle: Hola\ndate: 2026-09-01\n---\n',
@@ -53,7 +53,7 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
       prompt: '~/notes/tags/un-libro-al-mes $ ls',
       siteLang: 'es',
       documentTitle: 'Un libro al mes · Alex Sobrino',
-      title: 'Un libro al mes',
+      heading: 'Un libro al mes',
       listedNotes: [{ id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' }],
     },
     {
@@ -141,7 +141,7 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
       prompt: '~/notes/tags/libros $ ls',
       siteLang: 'es',
       documentTitle: 'Un libro al mes · Alex Sobrino',
-      title: 'Un libro al mes',
+      heading: 'Un libro al mes',
       listedNotes: [
         { id: 'otro', date: new Date('2026-10-03'), url: '/notes/otro/' },
         { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' },
@@ -173,7 +173,7 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
       prompt: '~/notes/tags/año $ ls',
       siteLang: 'es',
       documentTitle: 'Año · Alex Sobrino',
-      title: 'Año',
+      heading: 'Año',
       listedNotes: [{ id: 'año', date: new Date('2026-10-02'), url: '/notes/año/' }],
     },
   ]);

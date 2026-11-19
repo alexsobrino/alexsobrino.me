@@ -67,9 +67,9 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
       const { name, url } = tags[i];
       const href = hrefOf(link);
       if (href === url) continue;
-      const title = expected.find((other) => other.url === href)?.title;
-      if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
-      else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${title}"` });
+      const tagName = expected.find((other) => other.url === href)?.heading;
+      if (tagName === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
+      else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${tagName}"` });
     }
   }
   return problems;
@@ -157,9 +157,9 @@ export function findNoteListProblems(expected: ExpectedPage[], build: Build): Pa
   return problems;
 }
 
-/** Every expected Tag page in the build whose title is missing or isn't its Tag's name. A page not in the build is left to findMissingPages. */
-export function findTagTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
-  return findTextProblems(expected, build, 'title', '.page-title', ({ title }) => title);
+/** Every expected Tag page in the build whose heading is missing or isn't its Tag's name. A page not in the build is left to findMissingPages. */
+export function findTagHeadingProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  return findTextProblems(expected, build, 'heading', '.page-title', ({ heading }) => heading);
 }
 
 /** Every expected page in the build whose document title, its `<title>` in the head, is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
