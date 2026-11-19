@@ -18,9 +18,9 @@ export function findMissingPages(expected: ExpectedPage[], build: Build): PagePr
 
 /** Every built page that no expected page accounts for, such as a stale Tag page or a Note page under a slug the content doesn't have. */
 export function findExtraPages(expected: ExpectedPage[], build: Build): PageProblem[] {
-  const urls = new Set(expected.map(({ url }) => url));
+  const expectedUrls = new Set(expected.map(({ url }) => url));
   return [...build.keys()]
-    .filter((page) => !urls.has(page))
+    .filter((page) => !expectedUrls.has(page))
     .map((page) => ({ page, message: 'is in the build, but the content calls for no such page' }));
 }
 

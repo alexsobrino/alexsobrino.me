@@ -65,7 +65,7 @@ const expectedPages: ExpectedPage[] = [
   { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar' },
 ];
 
-test('accepts a build with every expected page, whatever else it has', async () => {
+test('accepts a build with every expected page, leaving any other pages to the extra-page check', async () => {
   const build = await readBuild(
     await fakeFolder({
       'index.html': '',
@@ -119,7 +119,7 @@ test('reports each built page that no expected page accounts for, naming the pag
   ]);
 });
 
-test('leaves files that are not pages, like the RSS feed and assets, out of the extra-page check', async () => {
+test('reads only pages from the build, so the RSS feed and assets are never reported as extra pages', async () => {
   const build = await readBuild(
     await fakeFolder({
       'index.html': '',
