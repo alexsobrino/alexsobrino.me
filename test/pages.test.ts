@@ -520,12 +520,12 @@ test('reports a page with no document title, even with a title elsewhere on it, 
 });
 
 /** A listing of Notes as NoteList renders it: one item per Note, its date, then its title linking to its page. With no link, an item shows its title alone. */
-function noteListing(title: string, notes: { title: string; href?: string }[]): string {
+function noteListing(heading: string, notes: { title: string; href?: string }[]): string {
   const items = notes.map(({ title, href }) => {
     const name = href === undefined ? title : `<a href="${href}">${title}</a>`;
     return `<li class="note" lang="es"><time class="note__date" datetime="2026-10-02T00:00:00.000Z">2 oct 2026</time>${name}</li>`;
   });
-  return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul class="notes prose">${items.join('')}</ul></main></body></html>`;
+  return `<html lang="es"><body><main><h1 class="page-title">${heading}</h1><ul class="notes prose">${items.join('')}</ul></main></body></html>`;
 }
 
 const etica = { id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' };

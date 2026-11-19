@@ -67,9 +67,9 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
       const { name, url } = tags[i];
       const href = hrefOf(link);
       if (href === url) continue;
-      const heading = expected.find((other) => other.url === href)?.heading;
-      if (heading === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
-      else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${heading}"` });
+      const tagName = expected.find((other) => other.url === href)?.heading;
+      if (tagName === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
+      else problems.push({ page, message: `Tag "${name}" links to ${href}, the Tag page of "${tagName}"` });
     }
   }
   return problems;
