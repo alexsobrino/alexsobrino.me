@@ -6,14 +6,31 @@ import { readContent } from './content.ts';
 /** A Tag as a Note page shows it: its name, linking to its Tag page. */
 export type ExpectedTag = { name: string; url: string };
 
-/** A page the build should have: its URL, as the build names its folder, its prompt and its site language; a Note or Side Project page also its Content language, a Note page its Tags, in the Note's order, and a Tag page its title. */
-export type ExpectedPage = { url: string; prompt: string; siteLang: string; contentLang?: string; tags?: ExpectedTag[]; title?: string };
+/** A Tag as the Tags listing shows it: its name, linking to its Tag page, and how many Notes it gathers. */
+export type ExpectedTagRow = ExpectedTag & { noteCount: number };
+
+/** A page the build should have: its URL, as the build names its folder, its prompt and its site language; a Note or Side Project page also its Content language, a Note page its Tags, in the Note's order, a Tag page its title, and the Tags listing its rows. */
+export type ExpectedPage = {
+  url: string;
+  prompt: string;
+  siteLang: string;
+  contentLang?: string;
+  tags?: ExpectedTag[];
+  title?: string;
+  tagRows?: ExpectedTagRow[];
+};
 
 /** Every expected page, in URL order: the home page, the Notes and Tags listings, each Note, each Tag that has Notes, and each Side Project. */
 export async function readExpectedPages(contentDir: string, siteLang: string): Promise<ExpectedPage[]> {
   const { notes, sideProjects } = await readContent(contentDir);
   // A Tag with no Notes gets no page.
   const tagNamesById = new Map(notes.flatMap((note) => note.tags.map(({ id, name }) => [id, name])));
+  // A Note counts once for each Tag it lists.
+  const noteCounts = new Map<string, number>();
+  for (const id of notes.flatMap((note) => [...new Set(note.tags.map(({ id }) => id))])) noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
+  const tagRows = [...tagNamesById]
+    .map(([id, name]) => ({ name, noteCount: noteCounts.get(id)!, url: tagPageUrl(id) }))
+    .sort((a, b) => a.name.localeCompare(b.name, siteLang));
   const pages: ExpectedPage[] = [
     { url: '/', prompt: '~ $ whoami', siteLang },
     { url: '/notes/', prompt: '~/notes $ ls', siteLang },
@@ -24,7 +41,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
       contentLang,
       tags: tags.map(({ id, name }) => ({ name, url: tagPageUrl(id) })),
     })),
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang },
+    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang, tagRows },
     ...[...tagNamesById].map(([id, name]) => ({ url: tagPageUrl(id), prompt: `~/notes/tags/${id} $ ls`, siteLang, title: name })),
     ...sideProjects.map(({ id, lang: contentLang }) => ({
       url: `/side-projects/${id}/`,

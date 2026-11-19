@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { ContentNote } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
@@ -24,14 +23,6 @@ function meta(...tags: { name: string; href: string }[]): string {
   return `<p class="page-meta"><time datetime="2026-10-02T00:00:00.000Z">2 oct 2026</time>${links}</p>`;
 }
 
-/** A Tag page, titled with the Tag's name. */
-function tagPage(name: string): string {
-  return `<h1 class="page-title">${name}</h1>`;
-}
-
-const siteLanguage = 'es';
-const libro = { id: 'un-libro-al-mes', name: 'Un libro al mes' };
-
 /** The Tags listing as the page renders it: one item per Tag, its name linking to its page, then its Note count. */
 function tagListing(items: { name: string; href?: string; count: number }[]): string {
   const listed = items.map(({ name, href, count }) =>
@@ -40,11 +31,19 @@ function tagListing(items: { name: string; href?: string; count: number }[]): st
   return `<html lang="es"><body><main><h1 class="page-title">Etiquetas</h1><ul>${listed.join('')}</ul></main></body></html>`;
 }
 
-// "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
-const taggedNotes: ContentNote[] = [
-  { id: 'reto', date: new Date('2026-10-02'), tags: [libro], lang: 'es' },
-  { id: 'etica', date: new Date('2026-09-01'), tags: [{ id: 'zen', name: 'Zen' }, { id: 'etica', name: 'Ética' }, libro], lang: 'es' },
-  { id: 'hola', date: new Date('2026-08-01'), tags: [], lang: 'es' },
+/** The expected Tags listing, its rows in site-language order: "Ética" before "Un libro al mes", though É comes after Z in Unicode. */
+const tagListingPages: ExpectedPage[] = [
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+  {
+    url: '/notes/tags/',
+    prompt: '~/notes/tags $ ls',
+    siteLang: 'es',
+    tagRows: [
+      { name: 'Ética', noteCount: 1, url: '/notes/tags/etica/' },
+      { name: 'Un libro al mes', noteCount: 2, url: '/notes/tags/un-libro-al-mes/' },
+      { name: 'Zen', noteCount: 1, url: '/notes/tags/zen/' },
+    ],
+  },
 ];
 
 // The Note "reto" is in English, on a site in Spanish.
@@ -336,39 +335,49 @@ test('reports a Note page with no meta line, leaving pages not in the build to t
 });
 
 test('accepts a Tags listing with every Tag that has Notes, by name, each with its Note count, linking to its page', async () => {
-  const dir = await fakeFolder({
-    'notes/tags/index.html': tagListing([
-      { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
-      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 2 },
-      { name: 'Zen', href: '/notes/tags/zen/', count: 1 },
-    ]),
-    'notes/tags/etica/index.html': tagPage('Ética'),
-    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
-    'notes/tags/zen/index.html': tagPage('Zen'),
-  });
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/index.html': tagListing([
+        { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
+        { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 2 },
+        { name: 'Zen', href: '/notes/tags/zen/', count: 1 },
+      ]),
+    }),
+  );
 
-  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), []);
+  assert.deepEqual(findTagListProblems(tagListingPages, build), []);
+});
+
+test('accepts a Tags listing link whose URL is encoded, as the build writes a non-ASCII slug', async () => {
+  const build = await readBuild(
+    await fakeFolder({ 'notes/tags/index.html': tagListing([{ name: 'Año', href: '/notes/tags/a%C3%B1o/', count: 1 }]) }),
+  );
+
+  const expected: ExpectedPage[] = [
+    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', tagRows: [{ name: 'Año', noteCount: 1, url: '/notes/tags/año/' }] },
+  ];
+
+  assert.deepEqual(findTagListProblems(expected, build), []);
 });
 
 test('reports a build with no Tags listing', async () => {
-  assert.deepEqual(await findTagListProblems(await fakeFolder({}), siteLanguage, taggedNotes), [
-    { page: '/notes/tags/', message: 'is not in the build' },
-  ]);
+  const build = await readBuild(await fakeFolder({ 'notes/index.html': '' }));
+
+  assert.deepEqual(findTagListProblems(tagListingPages, build), [{ page: '/notes/tags/', message: 'is not in the build' }]);
 });
 
 test('reports a Tags listing that leaves out a Tag, lists one with no Notes, is out of order or miscounts', async () => {
-  const dir = await fakeFolder({
-    'notes/tags/index.html': tagListing([
-      { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 1 },
-      { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
-      { name: 'Sin notas', href: '/notes/tags/sin-notas/', count: 0 },
-    ]),
-    'notes/tags/etica/index.html': tagPage('Ética'),
-    'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
-    'notes/tags/sin-notas/index.html': tagPage('Sin notas'),
-  });
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/index.html': tagListing([
+        { name: 'Un libro al mes', href: '/notes/tags/un-libro-al-mes/', count: 1 },
+        { name: 'Ética', href: '/notes/tags/etica/', count: 1 },
+        { name: 'Sin notas', href: '/notes/tags/sin-notas/', count: 0 },
+      ]),
+    }),
+  );
 
-  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), [
+  assert.deepEqual(findTagListProblems(tagListingPages, build), [
     {
       page: '/notes/tags/',
       message:
@@ -378,16 +387,17 @@ test('reports a Tags listing that leaves out a Tag, lists one with no Notes, is 
 });
 
 test('reports a Tag that does not link to its own Tag page', async () => {
-  const dir = await fakeFolder({
-    'notes/tags/index.html': tagListing([
-      { name: 'Ética', href: '/notes/tags/zen/', count: 1 },
-      { name: 'Un libro al mes', href: '/notes/tags/nada/', count: 2 },
-      { name: 'Zen', count: 1 },
-    ]),
-    'notes/tags/zen/index.html': tagPage('Zen'),
-  });
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/index.html': tagListing([
+        { name: 'Ética', href: '/notes/tags/zen/', count: 1 },
+        { name: 'Un libro al mes', href: '/notes/tags/nada/', count: 2 },
+        { name: 'Zen', count: 1 },
+      ]),
+    }),
+  );
 
-  assert.deepEqual(await findTagListProblems(dir, siteLanguage, taggedNotes), [
+  assert.deepEqual(findTagListProblems(tagListingPages, build), [
     { page: '/notes/tags/', message: '"Ética" links to /notes/tags/zen/, which is not its Tag page' },
     { page: '/notes/tags/', message: '"Un libro al mes" links to /notes/tags/nada/, which is not its Tag page' },
     { page: '/notes/tags/', message: '"Zen · 1" has no link' },

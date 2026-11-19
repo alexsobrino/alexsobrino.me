@@ -3,7 +3,6 @@ import { relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { parse, type HTMLElement } from 'node-html-parser';
 import { htmlFiles, pageUrl } from './built-site.ts';
-import { tagNames, type ContentNote } from './content.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 
 export type PageProblem = { page: string; message: string };
@@ -23,9 +22,6 @@ export function findExtraPages(expected: ExpectedPage[], build: Build): PageProb
     .filter((page) => !expectedUrls.has(page))
     .map((page) => ({ page, message: 'is in the build, but the content calls for no such page' }));
 }
-
-/** A Tag page's URL, /notes/tags/<id>/. */
-const tagPageUrl = /^\/notes\/tags\/([^/]+)\/$/;
 
 /** Every expected page in the build whose prompt is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
 export function findPromptProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
@@ -98,26 +94,20 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
   return problems;
 }
 
-/** Everything wrong with the Tags listing, checked against the Notes: it should list every Tag that has Notes, by name, each with its Note count and linking to its Tag page. */
-export async function findTagListProblems(buildDir: string, siteLanguage: string, notes: ContentNote[]): Promise<PageProblem[]> {
-  const page = '/notes/tags/';
-  const pages = await builtPages(buildDir);
-  const html = pages.find((built) => built.page === page)?.html;
+/** Everything wrong with the expected Tags listing: it should list its rows by name, in order, each with its Note count and linking to its Tag page. */
+export function findTagListProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  const listing = expected.find(({ tagRows }) => tagRows !== undefined);
+  if (listing === undefined) return [];
+  const { url: page, tagRows: rows = [] } = listing;
+  const html = build.get(page);
   if (html === undefined) return [{ page, message: 'is not in the build' }];
 
-  // A Note counts once for each Tag it lists.
-  const counts = new Map<string, number>();
-  for (const name of notes.flatMap((note) => [...new Set(tagNames(note))])) counts.set(name, (counts.get(name) ?? 0) + 1);
-  const expected = [...counts]
-    .sort(([a], [b]) => a.localeCompare(b, siteLanguage))
-    .map(([name, count]) => `${name} · ${count}`);
-
   const problems: PageProblem[] = [];
-  const tagPages = tagPageTitles(pages);
   const items = html.querySelectorAll('main li');
   const listed = items.map(textOf);
-  if (!isDeepStrictEqual(listed, expected)) {
-    problems.push({ page, message: `lists ${JSON.stringify(listed)}, expected ${JSON.stringify(expected)}` });
+  const expectedItems = rows.map(({ name, noteCount }) => `${name} · ${noteCount}`);
+  if (!isDeepStrictEqual(listed, expectedItems)) {
+    problems.push({ page, message: `lists ${JSON.stringify(listed)}, expected ${JSON.stringify(expectedItems)}` });
   }
   for (const item of items) {
     const link = item.querySelector('a');
@@ -127,18 +117,13 @@ export async function findTagListProblems(buildDir: string, siteLanguage: string
     }
     const name = textOf(link);
     const href = decodeURIComponent(link.getAttribute('href') ?? '');
-    if (tagPages.get(href) !== name) {
+    // A Tag that shouldn't be listed at all is already reported above.
+    const row = rows.find((row) => row.name === name);
+    if (row !== undefined && href !== row.url) {
       problems.push({ page, message: `"${name}" links to ${href}, which is not its Tag page` });
     }
   }
   return problems;
-}
-
-/** Each Tag page's title by its URL, to check a Tag links to its own page. */
-function tagPageTitles(pages: { page: string; html: HTMLElement }[]): Map<string, string> {
-  return new Map(
-    pages.filter(({ page }) => tagPageUrl.test(page)).map(({ page, html }) => [page, textOf(html.querySelector('.page-title'))]),
-  );
 }
 
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
@@ -165,9 +150,4 @@ export async function readBuild(buildDir: string): Promise<Build> {
     (await htmlFiles(buildDir)).map(async (file) => [pageUrl(relative(buildDir, file)), parse(await readFile(file, 'utf8'))] as const),
   );
   return new Map(pages.sort(([a], [b]) => (a < b ? -1 : 1)));
-}
-
-/** Every built page, parsed, in URL order. */
-async function builtPages(buildDir: string): Promise<{ page: string; html: HTMLElement }[]> {
-  return [...(await readBuild(buildDir))].map(([page, html]) => ({ page, html }));
 }
