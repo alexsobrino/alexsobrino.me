@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readExpectedPages } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 
-test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts and languages', async () => {
+test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts, languages and document titles', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [un-libro-al-mes]\n---\n',
     'notes/hola.md': '---\ntitle: Hola\ndate: 2026-09-01\n---\n',
@@ -12,12 +12,13 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
   });
 
   assert.deepEqual(await readExpectedPages(dir, 'es'), [
-    { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
-    { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+    { url: '/', prompt: '~ $ whoami', siteLang: 'es', documentTitle: 'Alex Sobrino' },
+    { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino' },
     {
       url: '/notes/hola/',
       prompt: '~/notes $ cat hola',
       siteLang: 'es',
+      documentTitle: 'Hola · Alex Sobrino',
       contentLang: 'es',
       tags: [],
       note: { id: 'hola', date: new Date('2026-09-01') },
@@ -26,6 +27,7 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
       url: '/notes/reto/',
       prompt: '~/notes $ cat reto',
       siteLang: 'es',
+      documentTitle: 'Reto · Alex Sobrino',
       contentLang: 'es',
       tags: [{ name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' }],
       note: { id: 'reto', date: new Date('2026-10-02') },
@@ -34,10 +36,23 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
       url: '/notes/tags/',
       prompt: '~/notes/tags $ ls',
       siteLang: 'es',
+      documentTitle: 'Etiquetas · Alex Sobrino',
       tagRows: [{ name: 'Un libro al mes', noteCount: 1, url: '/notes/tags/un-libro-al-mes/' }],
     },
-    { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
-    { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
+    {
+      url: '/notes/tags/un-libro-al-mes/',
+      prompt: '~/notes/tags/un-libro-al-mes $ ls',
+      siteLang: 'es',
+      documentTitle: 'Un libro al mes · Alex Sobrino',
+      title: 'Un libro al mes',
+    },
+    {
+      url: '/side-projects/sub9bar/',
+      prompt: '~/side-projects $ cat sub9bar',
+      siteLang: 'es',
+      documentTitle: 'Sub9bar · Alex Sobrino',
+      contentLang: 'es',
+    },
   ]);
 });
 
@@ -108,9 +123,16 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
       url: '/notes/tags/',
       prompt: '~/notes/tags $ ls',
       siteLang: 'es',
+      documentTitle: 'Etiquetas · Alex Sobrino',
       tagRows: [{ name: 'Un libro al mes', noteCount: 2, url: '/notes/tags/libros/' }],
     },
-    { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls', siteLang: 'es', title: 'Un libro al mes' },
+    {
+      url: '/notes/tags/libros/',
+      prompt: '~/notes/tags/libros $ ls',
+      siteLang: 'es',
+      documentTitle: 'Un libro al mes · Alex Sobrino',
+      title: 'Un libro al mes',
+    },
   ]);
 });
 
@@ -127,11 +149,12 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
       url: '/notes/año/',
       prompt: '~/notes $ cat año',
       siteLang: 'es',
+      documentTitle: 'Año · Alex Sobrino',
       contentLang: 'es',
       tags: [{ name: 'Año', url: '/notes/tags/año/' }],
       note: { id: 'año', date: new Date('2026-10-02') },
     },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
   ]);
 });
 
@@ -162,4 +185,23 @@ test('gives the Tags listing no rows when no Note has Tags', async () => {
   const listing = (await readExpectedPages(dir, 'es')).find(({ url }) => url === '/notes/tags/');
 
   assert.deepEqual(listing?.tagRows, []);
+});
+
+test("gives every page its document title: the Note's title, the Side Project's name, the Tag's name or the listing's, after the site's name, and the home page the site's name alone", async () => {
+  const dir = await fakeFolder({
+    'notes/reto.md': "---\ntitle: 'Reto: un libro al mes'\ndate: 2026-10-02\ntags: [libro]\n---\n",
+    'side-projects/sub9bar.md': '---\nname: Sub9bar\n---\n',
+    'tags.yml': 'libro:\n  name: Un libro al mes\n',
+  });
+
+  const titles = (await readExpectedPages(dir, 'es')).map(({ url, documentTitle }) => ({ url, documentTitle }));
+
+  assert.deepEqual(titles, [
+    { url: '/', documentTitle: 'Alex Sobrino' },
+    { url: '/notes/', documentTitle: 'Notas · Alex Sobrino' },
+    { url: '/notes/reto/', documentTitle: 'Reto: un libro al mes · Alex Sobrino' },
+    { url: '/notes/tags/', documentTitle: 'Etiquetas · Alex Sobrino' },
+    { url: '/notes/tags/libro/', documentTitle: 'Un libro al mes · Alex Sobrino' },
+    { url: '/side-projects/sub9bar/', documentTitle: 'Sub9bar · Alex Sobrino' },
+  ]);
 });

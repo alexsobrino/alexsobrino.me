@@ -9,7 +9,15 @@ const site = 'https://alexsobrino.me';
 
 /** An expected Note page at this URL, showing the Note with this slug and date and these Tags. */
 function notePage(url: string, id: string, date: string, tags: ExpectedTag[] = []): ExpectedPage {
-  return { url, prompt: `~/notes $ cat ${id}`, siteLang: 'es', contentLang: 'es', tags, note: { id, date: new Date(date) } };
+  return {
+    url,
+    prompt: `~/notes $ cat ${id}`,
+    siteLang: 'es',
+    documentTitle: `${id} · Alex Sobrino`,
+    contentLang: 'es',
+    tags,
+    note: { id, date: new Date(date) },
+  };
 }
 
 const reto = notePage('/notes/reto/', 'reto', '2026-10-02', [
@@ -17,7 +25,7 @@ const reto = notePage('/notes/reto/', 'reto', '2026-10-02', [
   { name: 'Retos & más', url: '/notes/tags/retos/' },
 ]);
 const hola = notePage('/notes/hola/', 'hola', '2026-09-01');
-const home: ExpectedPage = { url: '/', prompt: '~ $ whoami', siteLang: 'es' };
+const home: ExpectedPage = { url: '/', prompt: '~ $ whoami', siteLang: 'es', documentTitle: 'Alex Sobrino' };
 
 /** A fake build with the home page, both Note pages and an RSS feed carrying these items, in this order. */
 async function buildWithFeed(items: { link: string; categories?: string[] }[]): Promise<Build> {

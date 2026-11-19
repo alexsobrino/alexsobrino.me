@@ -8,6 +8,7 @@ import { findBrokenLinks, readBuild, type Build } from './built-site.ts';
 import { readExpectedPages, type ExpectedPage } from './expected-pages.ts';
 import { findFeedProblems } from './feed.ts';
 import {
+  findDocumentTitleProblems,
   findExtraPages,
   findLanguageProblems,
   findMissingPages,
@@ -80,6 +81,12 @@ test("every Tag page is titled with its Tag's name", () => {
   const problems = findTagTitleProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Wrong Tag page titles:\n${listed(problems)}`);
+});
+
+test("every page's document title is its name then the site's, or the site's alone on the home page", () => {
+  const problems = findDocumentTitleProblems(expectedPages, build);
+
+  assert.deepEqual(problems, [], `Wrong document titles:\n${listed(problems)}`);
 });
 
 test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', () => {

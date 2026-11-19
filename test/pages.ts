@@ -128,6 +128,18 @@ export function findTagTitleProblems(expected: ExpectedPage[], build: Build): Pa
   return problems;
 }
 
+/** Every expected page in the build whose document title, its `<title>` in the head, is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
+export function findDocumentTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  const problems: PageProblem[] = [];
+  for (const { url: page, documentTitle } of expected) {
+    const html = build.pages.get(page);
+    if (html === undefined) continue;
+    const problem = textProblem('document title', html.querySelector('head > title'), documentTitle);
+    if (problem !== undefined) problems.push({ page, message: problem });
+  }
+  return problems;
+}
+
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
 function describeTags(names: string[]): string {
   return names.length === 0 ? 'no Tags' : `Tags ${names.map((name) => `"${name}"`).join(', ')}`;
