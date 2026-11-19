@@ -15,7 +15,7 @@ export type ExpectedNote = { id: string; date: Date };
 /** A Note as a listing of Notes shows it: its slug and date, linking to its page. */
 export type ExpectedListedNote = ExpectedNote & { url: string };
 
-/** A page the build should have: its URL, as the build names its folder, its prompt, its site language and its document title. A Note or Side Project page also has its Content language; a Note page its Note and that Note's Tags, in the Note's order; a Tag page its title; the Tags listing its rows; and the Notes listing and each Tag page the Notes they list, newest first. */
+/** A page the build should have: its URL, as the build names its folder, its prompt, its site language and its document title. A Note or Side Project page also has its Content language; a Note page its Note and that Note's Tags, in the Note's order; a Tag page its heading, the Tag's name it shows on the page; the Tags listing its rows; and the Notes listing and each Tag page the Notes they list, newest first. */
 export type ExpectedPage = {
   url: string;
   prompt: string;
@@ -24,7 +24,7 @@ export type ExpectedPage = {
   contentLang?: string;
   tags?: ExpectedTag[];
   note?: ExpectedNote;
-  title?: string;
+  heading?: string;
   tagRows?: ExpectedTagRow[];
   listedNotes?: ExpectedListedNote[];
 };
@@ -70,7 +70,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
       prompt: `~/notes/tags/${id} $ ls`,
       siteLang,
       documentTitle: documentTitle(name),
-      title: name,
+      heading: name,
       listedNotes: notesNewestFirst.filter(({ tagIds }) => tagIds.has(id)).map(({ note }) => note),
     })),
     ...sideProjects.map(({ id, name, lang: contentLang }) => ({

@@ -15,8 +15,8 @@ import {
   findNoteListProblems,
   findNoteTagProblems,
   findPromptProblems,
+  findTagHeadingProblems,
   findTagListProblems,
-  findTagTitleProblems,
   type PageProblem,
 } from './pages.ts';
 
@@ -84,10 +84,10 @@ test('the Tags listing shows every Tag that has Notes, by name, with its Note co
   assert.deepEqual(problems, [], `Tags listing problems:\n${listed(problems)}`);
 });
 
-test("every Tag page is titled with its Tag's name", () => {
-  const problems = findTagTitleProblems(expectedPages, build);
+test("every Tag page is headed with its Tag's name", () => {
+  const problems = findTagHeadingProblems(expectedPages, build);
 
-  assert.deepEqual(problems, [], `Wrong Tag page titles:\n${listed(problems)}`);
+  assert.deepEqual(problems, [], `Wrong Tag page headings:\n${listed(problems)}`);
 });
 
 test("every page's document title is its name then the site's, or the site's alone on the home page", () => {
