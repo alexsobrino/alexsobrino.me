@@ -1,23 +1,28 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { ContentNote } from './content.ts';
+import type { ExpectedPage } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 import { findFeedProblems } from './feed.ts';
 
 const site = 'https://alexsobrino.me';
 
-const reto: ContentNote = {
-  id: 'reto',
-  date: new Date('2026-10-02'),
-  tags: [
-    { id: 'un-libro-al-mes', name: 'Un libro al mes' },
-    { id: 'retos', name: 'Retos & más' },
-  ],
-  lang: 'es',
-};
-const hola: ContentNote = { id: 'hola', date: new Date('2026-09-01'), tags: [], lang: 'es' };
+/** An expected Note page at this URL, showing the Note with this slug and date and these Tags. */
+function notePage(url: string, id: string, date: string, tags: string[] = []): ExpectedPage {
+  return {
+    url,
+    prompt: `~/notes $ cat ${id}`,
+    siteLang: 'es',
+    contentLang: 'es',
+    tags: tags.map((name) => ({ name, url: `/notes/tags/${name}/` })),
+    note: { id, date: new Date(date) },
+  };
+}
 
-/** A fake build with both Note pages and an RSS feed carrying these items, in this order. */
+const reto = notePage('/notes/reto/', 'reto', '2026-10-02', ['Un libro al mes', 'Retos & más']);
+const hola = notePage('/notes/hola/', 'hola', '2026-09-01');
+const home: ExpectedPage = { url: '/', prompt: '~ $ whoami', siteLang: 'es' };
+
+/** A fake build with the home page, both Note pages and an RSS feed carrying these items, in this order. */
 function buildWithFeed(items: { link: string; categories?: string[] }[]): Promise<string> {
   const xml = items
     .map(({ link, categories = [] }) =>
@@ -31,6 +36,7 @@ function buildWithFeed(items: { link: string; categories?: string[] }[]): Promis
     .join('');
   return fakeFolder({
     'rss.xml': `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Notas</title>${xml}</channel></rss>`,
+    'index.html': '',
     'notes/reto/index.html': '',
     'notes/hola/index.html': '',
   });
@@ -59,16 +65,35 @@ test('reports a Note with no item, an item for no Note and a Note with two items
     { link: 'https://alexsobrino.me/notes/reto/', categories: ['Un libro al mes', 'Retos & más'] },
     { link: 'https://alexsobrino.me/notes/reto/', categories: ['Un libro al mes', 'Retos & más'] },
     { link: 'https://alexsobrino.me/notes/hola/' },
+    { link: 'https://alexsobrino.me/' },
   ]);
 
-  assert.deepEqual(await findFeedProblems(dir, site, [reto]), [
+  assert.deepEqual(await findFeedProblems(dir, site, [home, reto]), [
     { item: 'item 2 (https://alexsobrino.me/notes/reto/)', message: 'is a second item for Note "reto", after item 1' },
     { item: 'item 3 (https://alexsobrino.me/notes/hola/)', message: 'links to /notes/hola/, which is no Note' },
+    { item: 'item 4 (https://alexsobrino.me/)', message: 'links to /, which is no Note' },
   ]);
   assert.deepEqual(
     await findFeedProblems(await buildWithFeed([{ link: 'https://alexsobrino.me/notes/hola/' }]), site, [reto, hola]),
     [{ item: 'feed', message: 'has no item for Note "reto"' }],
   );
+});
+
+test("finds an item's Note by its expected page URL, whatever shape that URL has", async () => {
+  const notas = notePage('/notas/reto/', 'reto', '2026-10-02');
+  const dir = await fakeFolder({
+    'rss.xml':
+      '<rss version="2.0"><channel>' +
+      '<item><link>https://alexsobrino.me/notas/reto/</link></item>' +
+      '<item><link>https://alexsobrino.me/notes/reto/</link></item>' +
+      '</channel></rss>',
+    'notas/reto/index.html': '',
+    'notes/reto/index.html': '',
+  });
+
+  assert.deepEqual(await findFeedProblems(dir, site, [notas]), [
+    { item: 'item 2 (https://alexsobrino.me/notes/reto/)', message: 'links to /notes/reto/, which is no Note' },
+  ]);
 });
 
 test('reports an item older than the one after it', async () => {
@@ -90,7 +115,7 @@ test('reports a relative link, an off-site link and a link to a page that is not
     { link: '/notes/reto/', categories: ['Un libro al mes', 'Retos & más'] },
     { link: 'https://example.com/notes/hola/' },
   ]);
-  const gone: ContentNote = { id: 'gone', date: new Date('2026-08-01'), tags: [], lang: 'es' };
+  const gone = notePage('/notes/gone/', 'gone', '2026-08-01');
   const unbuilt = await buildWithFeed([{ link: 'https://alexsobrino.me/notes/gone/' }]);
 
   assert.deepEqual(await findFeedProblems(dir, site, [reto, hola]), [

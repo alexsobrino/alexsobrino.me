@@ -9,13 +9,17 @@ export type ExpectedTag = { name: string; url: string };
 /** A Tag as the Tags listing shows it: its name, linking to its Tag page, and how many Notes it gathers. */
 export type ExpectedTagRow = ExpectedTag & { noteCount: number };
 
-/** A page the build should have: its URL, as the build names its folder, its prompt and its site language; a Note or Side Project page also its Content language, a Note page its Tags, in the Note's order, a Tag page its title, and the Tags listing its rows. */
+/** The Note a Note page shows: its slug and date. */
+export type ExpectedNote = { id: string; date: Date };
+
+/** A page the build should have: its URL, as the build names its folder, its prompt and its site language; a Note or Side Project page also its Content language, a Note page its Tags, in the Note's order, and its Note, a Tag page its title, and the Tags listing its rows. */
 export type ExpectedPage = {
   url: string;
   prompt: string;
   siteLang: string;
   contentLang?: string;
   tags?: ExpectedTag[];
+  note?: ExpectedNote;
   title?: string;
   tagRows?: ExpectedTagRow[];
 };
@@ -36,12 +40,13 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
   const pages: ExpectedPage[] = [
     { url: '/', prompt: '~ $ whoami', siteLang },
     { url: '/notes/', prompt: '~/notes $ ls', siteLang },
-    ...notes.map(({ id, tags, lang: contentLang }) => ({
+    ...notes.map(({ id, date, tags, lang: contentLang }) => ({
       url: `/notes/${id}/`,
       prompt: `~/notes $ cat ${id}`,
       siteLang,
       contentLang,
       tags: tags.map(({ id, name }) => ({ name, url: tagPageUrl(id) })),
+      note: { id, date },
     })),
     { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang, tagRows },
     ...[...tagNamesById].map(([id, name]) => ({ url: tagPageUrl(id), prompt: `~/notes/tags/${id} $ ls`, siteLang, title: name })),

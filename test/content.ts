@@ -37,11 +37,6 @@ export async function readContent(contentDir: string): Promise<Content> {
   return { notes, sideProjects };
 }
 
-/** A Note's Tags by name, in the order it lists them, as the site shows them. */
-export function tagNames(note: ContentNote): string[] {
-  return note.tags.map(({ name }) => name);
-}
-
 /** A Note's date, as Astro reads it; a date that is not one fails rather than passing every check. */
 function noteDate(id: string, value: unknown): Date {
   const date = new Date(value as string | Date);

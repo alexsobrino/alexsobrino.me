@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import config from '../astro.config.mjs';
 import { siteLanguage } from '../src/site-language.ts';
 import { findBrokenLinks } from './built-site.ts';
-import { readContent, type Content } from './content.ts';
 import { readExpectedPages, type ExpectedPage } from './expected-pages.ts';
 import { findFeedProblems } from './feed.ts';
 import {
@@ -23,13 +22,11 @@ import {
 // The built site, as `npm run build` leaves it, and the content it was built from.
 const buildDir = fileURLToPath(new URL('../dist/', import.meta.url));
 const contentDir = fileURLToPath(new URL('../src/content/', import.meta.url));
-let content: Content;
 let expectedPages: ExpectedPage[];
 let build: Build;
 
 before(async () => {
   assert.ok(existsSync(buildDir), `No build at ${buildDir}: run \`npm run build\` first.`);
-  content = await readContent(contentDir);
   expectedPages = await readExpectedPages(contentDir, siteLanguage);
   build = await readBuild(buildDir);
 });
@@ -81,7 +78,7 @@ test('the Tags listing shows every Tag that has Notes, by name, with its Note co
 });
 
 test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', async () => {
-  const problems = await findFeedProblems(buildDir, config.site!, content.notes);
+  const problems = await findFeedProblems(buildDir, config.site!, expectedPages);
 
   assert.deepEqual(
     problems,
