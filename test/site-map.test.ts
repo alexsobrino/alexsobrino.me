@@ -54,3 +54,9 @@ test('a Side Project is a file in the Side Projects folder, and links back to th
     back: { href: '/', label: 'inicio' },
   });
 });
+
+test('a Side Project keeps its slug as written in its URL and prompt', () => {
+  const place = sideProjectPlace({ id: 'año' });
+  assert.equal(place.url, '/side-projects/año/');
+  assert.deepEqual(place.prompt, { path: '/side-projects', command: 'cat año' });
+});
