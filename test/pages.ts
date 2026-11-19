@@ -1,24 +1,19 @@
-import { readFile } from 'node:fs/promises';
-import { relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { parse, type HTMLElement } from 'node-html-parser';
-import { htmlFiles, pageUrl } from './built-site.ts';
+import type { HTMLElement } from 'node-html-parser';
+import type { Build } from './built-site.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 
 export type PageProblem = { page: string; message: string };
 
-/** The built site's pages, each parsed, by URL in URL order: read once and handed to the checks. */
-export type Build = Map<string, HTMLElement>;
-
 /** Every expected page that is not in the build. */
 export function findMissingPages(expected: ExpectedPage[], build: Build): PageProblem[] {
-  return expected.filter(({ url }) => !build.has(url)).map(({ url }) => ({ page: url, message: 'is not in the build' }));
+  return expected.filter(({ url }) => !build.pages.has(url)).map(({ url }) => ({ page: url, message: 'is not in the build' }));
 }
 
 /** Every built page that no expected page accounts for, such as a stale Tag page or a Note page under a slug the content doesn't have. */
 export function findExtraPages(expected: ExpectedPage[], build: Build): PageProblem[] {
   const expectedUrls = new Set(expected.map(({ url }) => url));
-  return [...build.keys()]
+  return [...build.pages.keys()]
     .filter((page) => !expectedUrls.has(page))
     .map((page) => ({ page, message: 'is in the build, but the content calls for no such page' }));
 }
@@ -27,7 +22,7 @@ export function findExtraPages(expected: ExpectedPage[], build: Build): PageProb
 export function findPromptProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
   for (const { url: page, prompt: expectedPrompt } of expected) {
-    const html = build.get(page);
+    const html = build.pages.get(page);
     if (html === undefined) continue;
     const prompt = html.querySelector('.prompt');
     if (prompt === null) {
@@ -46,7 +41,7 @@ export function findPromptProblems(expected: ExpectedPage[], build: Build): Page
 export function findLanguageProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
   for (const { url: page, siteLang, contentLang } of expected) {
-    const html = build.get(page);
+    const html = build.pages.get(page);
     if (html === undefined) continue;
     const htmlProblem = langProblem('<html>', html.querySelector('html'), siteLang);
     if (htmlProblem !== undefined) problems.push({ page, message: htmlProblem });
@@ -61,7 +56,7 @@ export function findLanguageProblems(expected: ExpectedPage[], build: Build): Pa
 export function findNoteTagProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
   const problems: PageProblem[] = [];
   for (const { url: page, tags } of expected) {
-    const html = build.get(page);
+    const html = build.pages.get(page);
     if (tags === undefined || html === undefined) continue;
     const names = tags.map(({ name }) => name);
     const meta = html.querySelector('.page-meta');
@@ -99,7 +94,7 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
   const problems: PageProblem[] = [];
   for (const { url: page, tagRows: rows } of expected) {
     if (rows === undefined) continue;
-    const html = build.get(page);
+    const html = build.pages.get(page);
     if (html === undefined) {
       problems.push({ page, message: 'is not in the build' });
       continue;
@@ -144,12 +139,4 @@ function langProblem(name: string, element: HTMLElement | null, expected: string
   const lang = element.getAttribute('lang');
   if (lang === undefined) return `${name} has no lang, expected "${expected}"`;
   if (lang !== expected) return `${name} has lang "${lang}", expected "${expected}"`;
-}
-
-/** Reads and parses every built page, in URL order so problems come out in a stable order. */
-export async function readBuild(buildDir: string): Promise<Build> {
-  const pages = await Promise.all(
-    (await htmlFiles(buildDir)).map(async (file) => [pageUrl(relative(buildDir, file)), parse(await readFile(file, 'utf8'))] as const),
-  );
-  return new Map(pages.sort(([a], [b]) => (a < b ? -1 : 1)));
 }

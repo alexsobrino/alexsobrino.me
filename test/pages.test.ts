@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readBuild } from './built-site.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
@@ -9,7 +10,6 @@ import {
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
-  readBuild,
 } from './pages.ts';
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
