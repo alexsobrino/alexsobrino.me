@@ -2,6 +2,7 @@
 import { render } from 'astro:content';
 import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
 import { formatDate, getNotePaths, tagUrl } from '../../notes';
+import { notePlace } from '../../site-map';
 
 export const getStaticPaths = getNotePaths;
 
@@ -9,7 +10,7 @@ const { note } = Astro.props;
 const { Content } = await render(note);
 ---
 
-<InnerPageLayout title={note.data.title} description={note.data.description} command="cat" back={{ href: '/notes/', label: 'notas' }}>
+<InnerPageLayout title={note.data.title} description={note.data.description} place={notePlace(note)}>
   <article lang={note.data.lang}>
     <h1 class="page-title">{note.data.title}</h1>
     <p class="page-meta">

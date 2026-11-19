@@ -1,18 +1,14 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { siteLanguage } from './site-language';
 
-// Everything the site knows about presenting a Note and its Tags: where each lives, a Note's order
-// and date, and which Notes a Tag gathers.
+// Everything the site knows about presenting a Note and its Tags: where a Tag lives, a Note's order
+// and date, and which Notes a Tag gathers. Where a Note lives is the site map's (see site-map.ts).
 
 export type Tag = CollectionEntry<'tags'>;
 
 // A Note as the site hands it out: with its Tags resolved, in the order it lists them.
 // Use `tags`, not `data.tags`, which only refers to them by slug.
 export type Note = CollectionEntry<'notes'> & { tags: Tag[] };
-
-export function noteUrl(note: Note) {
-  return `/notes/${note.id}/`;
-}
 
 export function tagUrl(tag: Tag) {
   return `/notes/tags/${tag.id}/`;
@@ -33,7 +29,7 @@ async function getNotes(): Promise<Note[]> {
   }));
 }
 
-// Static paths for the Note pages; they must produce the URLs noteUrl() links to.
+// Static paths for the Note pages; they must produce the URLs notePlace() gives.
 export async function getNotePaths() {
   const notes = await getNotes();
   return notes.map((note) => ({ params: { id: note.id }, props: { note } }));

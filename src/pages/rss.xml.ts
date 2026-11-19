@@ -1,6 +1,7 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
-import { getNotesNewestFirst, noteUrl } from '../notes';
+import { getNotesNewestFirst } from '../notes';
+import { notePlace } from '../site-map';
 
 export async function GET(context: APIContext) {
   const notes = await getNotesNewestFirst();
@@ -12,7 +13,7 @@ export async function GET(context: APIContext) {
       title: note.data.title,
       pubDate: note.data.date,
       description: note.data.description,
-      link: noteUrl(note),
+      link: notePlace(note).url,
       categories: note.tags.map((tag) => tag.data.name),
     })),
   });
