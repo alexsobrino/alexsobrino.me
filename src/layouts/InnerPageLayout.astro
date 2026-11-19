@@ -1,22 +1,20 @@
 ---
 import PromptBar from '../components/PromptBar.astro';
-import { innerPagePrompt, type BackLink, type InnerPageCommand, type Place } from '../site-map';
+import type { Place } from '../site-map';
 import BaseLayout from './BaseLayout.astro';
 
 // The shell of every page but the home page: the prompt bar, a back link and `main` for the content.
 // The page brings its own heading, since a Note or Side Project keeps it in its `<article>`.
-// A page in the site map passes its place; the others still pass their command and back link.
+// Where the page sits, and so its prompt and back link, comes only from its place in the site map.
 
-type Props = { title: string; description?: string } & (
-  | { place: Place }
-  | { command: InnerPageCommand; back: BackLink }
-);
+interface Props {
+  title: string;
+  description?: string;
+  place: Place;
+}
 
-const { title, description } = Astro.props;
-const { prompt, back } =
-  'place' in Astro.props
-    ? Astro.props.place
-    : { prompt: innerPagePrompt(Astro.url.pathname, Astro.props.command), back: Astro.props.back };
+const { title, description, place } = Astro.props;
+const { prompt, back } = place;
 ---
 
 <BaseLayout title={title} description={description}>

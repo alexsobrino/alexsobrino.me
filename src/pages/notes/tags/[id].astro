@@ -2,13 +2,14 @@
 import NoteList from '../../../components/NoteList.astro';
 import InnerPageLayout from '../../../layouts/InnerPageLayout.astro';
 import { getTagPaths } from '../../../notes';
+import { tagPlace } from '../../../site-map';
 
 export const getStaticPaths = getTagPaths;
 
 const { tag, notes } = Astro.props;
 ---
 
-<InnerPageLayout title={tag.data.name} command="ls" back={{ href: '/notes/', label: 'notas' }}>
+<InnerPageLayout title={tag.data.name} place={tagPlace(tag)}>
   <h1 class="page-title">{tag.data.name}</h1>
   <NoteList notes={notes} class="prose" />
 </InnerPageLayout>
