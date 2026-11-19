@@ -4,11 +4,11 @@ import { readBuild } from './built-site.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
+  findDocumentTitleProblems,
   findExtraPages,
   findLanguageProblems,
   findMissingPages,
   findNoteTagProblems,
-  findDocumentTitleProblems,
   findPromptProblems,
   findTagListProblems,
   findTagTitleProblems,

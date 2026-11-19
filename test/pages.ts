@@ -20,14 +20,7 @@ export function findExtraPages(expected: ExpectedPage[], build: Build): PageProb
 
 /** Every expected page in the build whose prompt is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
 export function findPromptProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
-  const problems: PageProblem[] = [];
-  for (const { url: page, prompt: expectedPrompt } of expected) {
-    const html = build.pages.get(page);
-    if (html === undefined) continue;
-    const problem = textProblem('prompt', html.querySelector('.prompt'), expectedPrompt);
-    if (problem !== undefined) problems.push({ page, message: problem });
-  }
-  return problems;
+  return findTextProblems(expected, build, 'prompt', '.prompt', ({ prompt }) => prompt);
 }
 
 /** Every expected page in the build whose <html lang> isn't its site language, and every Note or Side Project page whose <article lang> isn't that piece's Content language. A page not in the build is left to findMissingPages. */
@@ -118,24 +111,29 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
 
 /** Every expected Tag page in the build whose title is missing or isn't its Tag's name. A page not in the build is left to findMissingPages. */
 export function findTagTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
-  const problems: PageProblem[] = [];
-  for (const { url: page, title: expectedTitle } of expected) {
-    const html = build.pages.get(page);
-    if (expectedTitle === undefined || html === undefined) continue;
-    const problem = textProblem('title', html.querySelector('.page-title'), expectedTitle);
-    if (problem !== undefined) problems.push({ page, message: problem });
-  }
-  return problems;
+  return findTextProblems(expected, build, 'title', '.page-title', ({ title }) => title);
 }
 
 /** Every expected page in the build whose document title, its `<title>` in the head, is missing or doesn't read as expected. A page not in the build is left to findMissingPages. */
 export function findDocumentTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  return findTextProblems(expected, build, 'document title', 'head > title', ({ documentTitle }) => documentTitle);
+}
+
+/** Every expected page in the build where the element at this selector is missing or doesn't read as the page expects. A page that expects nothing of it, or is not in the build, is skipped. */
+function findTextProblems(
+  expected: ExpectedPage[],
+  build: Build,
+  name: string,
+  selector: string,
+  expectedText: (page: ExpectedPage) => string | undefined,
+): PageProblem[] {
   const problems: PageProblem[] = [];
-  for (const { url: page, documentTitle } of expected) {
-    const html = build.pages.get(page);
-    if (html === undefined) continue;
-    const problem = textProblem('document title', html.querySelector('head > title'), documentTitle);
-    if (problem !== undefined) problems.push({ page, message: problem });
+  for (const expectedPage of expected) {
+    const text = expectedText(expectedPage);
+    const html = build.pages.get(expectedPage.url);
+    if (text === undefined || html === undefined) continue;
+    const problem = textProblem(name, html.querySelector(selector), text);
+    if (problem !== undefined) problems.push({ page: expectedPage.url, message: problem });
   }
   return problems;
 }

@@ -7,7 +7,7 @@ import { findFeedProblems } from './feed.ts';
 
 const site = 'https://alexsobrino.me';
 
-/** An expected Note page at this URL, showing the Note with this slug and date and these Tags. */
+/** An expected Note page at this URL, showing the Note with this slug and date and these Tags, titled after its slug, which the feed check doesn't read. */
 function notePage(url: string, id: string, date: string, tags: ExpectedTag[] = []): ExpectedPage {
   return {
     url,
