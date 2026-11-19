@@ -6,14 +6,14 @@ import { parse } from 'yaml';
 // through Astro, so the built-site tests have their own expectations to check the build against.
 
 export type ContentTag = { id: string; name: string };
-export type ContentNote = { id: string; date: Date; tags: ContentTag[]; lang: string };
-export type ContentSideProject = { id: string; lang: string };
+export type ContentNote = { id: string; title: string; date: Date; tags: ContentTag[]; lang: string };
+export type ContentSideProject = { id: string; name: string; lang: string };
 export type Content = { notes: ContentNote[]; sideProjects: ContentSideProject[] };
 
 // The Content language a piece has when its frontmatter doesn't say, as in src/content.config.ts.
 const defaultLang = 'es';
 
-/** Every Note, with its Tags (slug and name) in the order it lists them, and every Side Project. */
+/** Every Note, with its title and its Tags (slug and name) in the order it lists them, and every Side Project with its name. */
 export async function readContent(contentDir: string): Promise<Content> {
   const tagNames = new Map(
     Object.entries((parse(await readFile(join(contentDir, 'tags.yml'), 'utf8')) ?? {}) as Record<string, { name: string }>).map(
@@ -22,6 +22,7 @@ export async function readContent(contentDir: string): Promise<Content> {
   );
   const notes = (await markdownFiles(join(contentDir, 'notes'))).map(({ id, data }) => ({
     id,
+    title: data.title as string,
     date: noteDate(id, data.date),
     tags: ((data.tags ?? []) as string[]).map((tag) => {
       const name = tagNames.get(tag);
@@ -32,6 +33,7 @@ export async function readContent(contentDir: string): Promise<Content> {
   }));
   const sideProjects = (await markdownFiles(join(contentDir, 'side-projects'))).map(({ id, data }) => ({
     id,
+    name: data.name as string,
     lang: (data.lang as string | undefined) ?? defaultLang,
   }));
   return { notes, sideProjects };

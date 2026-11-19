@@ -4,6 +4,7 @@ import { readBuild } from './built-site.ts';
 import { fakeFolder } from './fake-folder.ts';
 import type { ExpectedPage } from './expected-pages.ts';
 import {
+  findDocumentTitleProblems,
   findExtraPages,
   findLanguageProblems,
   findMissingPages,
@@ -34,11 +35,12 @@ function tagListing(items: { name: string; href?: string; count: number }[]): st
 
 /** The Notes listing, which has no Tag rows to check, and the Tags listing, its rows in site-language order: "Ética" before "Un libro al mes", though É comes after Z in Unicode. */
 const tagListingPages: ExpectedPage[] = [
-  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino' },
   {
     url: '/notes/tags/',
     prompt: '~/notes/tags $ ls',
     siteLang: 'es',
+    documentTitle: 'Etiquetas · Alex Sobrino',
     tagRows: [
       { name: 'Ética', noteCount: 1, url: '/notes/tags/etica/' },
       { name: 'Un libro al mes', noteCount: 2, url: '/notes/tags/un-libro-al-mes/' },
@@ -49,12 +51,12 @@ const tagListingPages: ExpectedPage[] = [
 
 // The Note "reto" is in English, on a site in Spanish.
 const expectedPages: ExpectedPage[] = [
-  { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
-  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en' },
-  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es' },
-  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
+  { url: '/', prompt: '~ $ whoami', siteLang: 'es', documentTitle: 'Alex Sobrino' },
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino' },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', documentTitle: 'Reto · Alex Sobrino', contentLang: 'en' },
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', documentTitle: 'Etiquetas · Alex Sobrino' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', documentTitle: 'Un libro al mes · Alex Sobrino' },
+  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', documentTitle: 'Sub9bar · Alex Sobrino', contentLang: 'es' },
 ];
 
 test('accepts a build with every expected page, leaving any other pages to the extra-page check', async () => {
@@ -232,16 +234,17 @@ const pragmaticTag = { name: 'The Pragmatic Programmer', url: '/notes/tags/the-p
 
 /** Expected Note pages with their Tags, and the Tag pages they link to. */
 const noteTagPages: ExpectedPage[] = [
-  { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', contentLang: 'es', tags: [] },
-  { url: '/notes/libros/', prompt: '~/notes $ cat libros', siteLang: 'es', contentLang: 'es', tags: [libroTag, pragmaticTag] },
-  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', contentLang: 'en', tags: [libroTag] },
+  { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', documentTitle: 'Hola · Alex Sobrino', contentLang: 'es', tags: [] },
+  { url: '/notes/libros/', prompt: '~/notes $ cat libros', siteLang: 'es', documentTitle: 'Libros · Alex Sobrino', contentLang: 'es', tags: [libroTag, pragmaticTag] },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', documentTitle: 'Reto · Alex Sobrino', contentLang: 'en', tags: [libroTag] },
   {
     url: '/notes/tags/the-pragmatic-programmer/',
     prompt: '~/notes/tags/the-pragmatic-programmer $ ls',
     siteLang: 'es',
+    documentTitle: 'The Pragmatic Programmer · Alex Sobrino',
     title: 'The Pragmatic Programmer',
   },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', documentTitle: 'Un libro al mes · Alex Sobrino', title: 'Un libro al mes' },
 ];
 
 test("accepts Note pages whose meta line shows the date, then each of the Note's Tags in order, linking to its Tag page", async () => {
@@ -266,8 +269,8 @@ test('accepts a Tag link whose URL is encoded, as the build writes a non-ASCII s
   );
 
   const expected: ExpectedPage[] = [
-    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
+    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
   ];
 
   assert.deepEqual(findNoteTagProblems(expected, build), []);
@@ -355,7 +358,7 @@ test('accepts a Tags listing link whose URL is encoded, as the build writes a no
   );
 
   const expected: ExpectedPage[] = [
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', tagRows: [{ name: 'Año', noteCount: 1, url: '/notes/tags/año/' }] },
+    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', documentTitle: 'Etiquetas · Alex Sobrino', tagRows: [{ name: 'Año', noteCount: 1, url: '/notes/tags/año/' }] },
   ];
 
   assert.deepEqual(findTagListProblems(expected, build), []);
@@ -412,9 +415,15 @@ function tagPage(title: string): string {
 
 /** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose title is no Tag's name. */
 const tagTitlePages: ExpectedPage[] = [
-  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', tagRows: [] },
-  { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
-  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', documentTitle: 'Etiquetas · Alex Sobrino', tagRows: [] },
+  { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
+  {
+    url: '/notes/tags/un-libro-al-mes/',
+    prompt: '~/notes/tags/un-libro-al-mes $ ls',
+    siteLang: 'es',
+    documentTitle: 'Un libro al mes · Alex Sobrino',
+    title: 'Un libro al mes',
+  },
 ];
 
 test("accepts Tag pages titled with their Tag's name, however the title's whitespace runs, leaving other pages' titles alone", async () => {
@@ -452,5 +461,59 @@ test('reports a Tag page with no title, leaving pages not in the build to the mi
 
   assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
     { page: '/notes/tags/año/', message: 'no title, expected "Año"' },
+  ]);
+});
+
+/** A page with this document title; with none, a page whose head has no title. */
+function titledPage(documentTitle?: string): string {
+  const title = documentTitle === undefined ? '' : `<title>${documentTitle}</title>`;
+  return `<html lang="es"><head><meta charset="utf-8">${title}</head><body><main></main></body></html>`;
+}
+
+/** The home page, titled with the site's name alone, a Note page and a Side Project page. */
+const documentTitlePages: ExpectedPage[] = [
+  { url: '/', prompt: '~ $ whoami', siteLang: 'es', documentTitle: 'Alex Sobrino' },
+  { url: '/notes/reto/', prompt: '~/notes $ cat reto', siteLang: 'es', documentTitle: 'Reto: un libro al mes · Alex Sobrino', contentLang: 'es' },
+  { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', documentTitle: 'Sub9bar · Alex Sobrino', contentLang: 'es' },
+];
+
+test('accepts pages whose document title reads as expected, however its whitespace runs', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': titledPage('Alex Sobrino'),
+      'notes/reto/index.html': titledPage('Reto: un libro al mes · Alex Sobrino'),
+      'side-projects/sub9bar/index.html': titledPage('\n  Sub9bar ·  Alex Sobrino\n'),
+    }),
+  );
+
+  assert.deepEqual(findDocumentTitleProblems(documentTitlePages, build), []);
+});
+
+test('reports a page whose document title reads otherwise, naming the page', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': titledPage('Alex Sobrino'),
+      'notes/reto/index.html': titledPage('Sub9bar · Alex Sobrino'),
+      'side-projects/sub9bar/index.html': titledPage('Sub9bar'),
+    }),
+  );
+
+  assert.deepEqual(findDocumentTitleProblems(documentTitlePages, build), [
+    { page: '/notes/reto/', message: 'document title reads "Sub9bar · Alex Sobrino", expected "Reto: un libro al mes · Alex Sobrino"' },
+    { page: '/side-projects/sub9bar/', message: 'document title reads "Sub9bar", expected "Sub9bar · Alex Sobrino"' },
+  ]);
+});
+
+test('reports a page with no document title, even with a title elsewhere on it, leaving pages not in the build to the missing-page check', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'index.html': titledPage(),
+      'notes/reto/index.html': titledPage().replace('<main></main>', '<main><svg><title>Reto: un libro al mes · Alex Sobrino</title></svg></main>'),
+    }),
+  );
+
+  assert.deepEqual(findDocumentTitleProblems(documentTitlePages, build), [
+    { page: '/', message: 'no document title, expected "Alex Sobrino"' },
+    { page: '/notes/reto/', message: 'no document title, expected "Reto: un libro al mes · Alex Sobrino"' },
   ]);
 });

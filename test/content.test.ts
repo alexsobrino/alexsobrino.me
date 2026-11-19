@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readContent } from './content.ts';
 import { fakeFolder } from './fake-folder.ts';
 
-test('reads each Note by slug with its date, Tags in its own order and Content language', async () => {
+test('reads each Note by slug with its title, date, Tags in its own order and Content language', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': "---\ntitle: 'Reto'\ndate: 2026-10-02\ntags: [libros, retos]\nlang: en\n---\n\nTexto.",
     'notes/hola.md': '---\ntitle: Hola\ndate: 2026-09-01\n---\n\nTexto.',
@@ -15,13 +15,13 @@ test('reads each Note by slug with its date, Tags in its own order and Content l
   assert.deepEqual(
     notes.sort((a, b) => a.id.localeCompare(b.id)),
     [
-      { id: 'hola', date: new Date('2026-09-01T00:00:00Z'), tags: [], lang: 'es' },
-      { id: 'reto', date: new Date('2026-10-02T00:00:00Z'), tags: [{ id: 'libros', name: 'Un libro al mes' }, { id: 'retos', name: 'Retos' }], lang: 'en' },
+      { id: 'hola', title: 'Hola', date: new Date('2026-09-01T00:00:00Z'), tags: [], lang: 'es' },
+      { id: 'reto', title: 'Reto', date: new Date('2026-10-02T00:00:00Z'), tags: [{ id: 'libros', name: 'Un libro al mes' }, { id: 'retos', name: 'Retos' }], lang: 'en' },
     ],
   );
 });
 
-test('reads each Side Project by slug with its Content language, Spanish unless it says otherwise', async () => {
+test('reads each Side Project by slug with its name and Content language, Spanish unless it says otherwise', async () => {
   const dir = await fakeFolder({
     'side-projects/sub9bar.md': '---\nname: Sub9bar\nimage: ./sub9bar.png\n---\n\nTexto.',
     'side-projects/other.md': '---\nname: Other\nlang: en\n---\n\nText.',
@@ -34,8 +34,8 @@ test('reads each Side Project by slug with its Content language, Spanish unless 
   assert.deepEqual(
     sideProjects.sort((a, b) => a.id.localeCompare(b.id)),
     [
-      { id: 'other', lang: 'en' },
-      { id: 'sub9bar', lang: 'es' },
+      { id: 'other', name: 'Other', lang: 'en' },
+      { id: 'sub9bar', name: 'Sub9bar', lang: 'es' },
     ],
   );
 });
