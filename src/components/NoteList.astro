@@ -1,5 +1,6 @@
 ---
-import { formatDate, noteUrl, type Note } from '../notes';
+import { formatDate, type Note } from '../notes';
+import { notePlace } from '../site-map';
 
 interface Props {
   notes: Note[];
@@ -14,7 +15,7 @@ const { notes, class: className } = Astro.props;
     notes.map((note) => (
       <li class="note" lang={note.data.lang}>
         <time class="note__date" datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
-        <a href={noteUrl(note)}>{note.data.title}</a>
+        <a href={notePlace(note).url}>{note.data.title}</a>
       </li>
     ))
   }

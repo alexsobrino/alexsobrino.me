@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { innerPagePrompt } from '../src/inner-page.ts';
+import { innerPagePrompt, notePlace } from '../src/site-map.ts';
+
+test('a Note is a file in the Notes listing, and links back to it', () => {
+  assert.deepEqual(notePlace({ id: 'reto-1-libro-al-mes' }), {
+    url: '/notes/reto-1-libro-al-mes/',
+    prompt: { path: '/notes', command: 'cat reto-1-libro-al-mes' },
+    back: { href: '/notes/', label: 'notas' },
+  });
+});
+
+test('a Note keeps its slug as written in its URL and prompt', () => {
+  const place = notePlace({ id: 'año' });
+  assert.equal(place.url, '/notes/año/');
+  assert.deepEqual(place.prompt, { path: '/notes', command: 'cat año' });
+});
 
 test('ls lists the folder the page is at', () => {
   assert.deepEqual(innerPagePrompt('/notes/', 'ls'), { path: '/notes', command: 'ls' });
