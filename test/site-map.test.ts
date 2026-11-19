@@ -14,6 +14,7 @@ test('a Note keeps its slug as written in its URL and prompt', () => {
   const place = notePlace({ id: 'año' });
   assert.equal(place.url, '/notes/año/');
   assert.deepEqual(place.prompt, { path: '/notes', command: 'cat año' });
+  assert.deepEqual(notePlace({ id: '100%-real' }).prompt, { path: '/notes', command: 'cat 100%-real' });
 });
 
 test('ls lists the folder the page is at', () => {

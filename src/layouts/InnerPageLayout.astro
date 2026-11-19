@@ -1,6 +1,6 @@
 ---
 import PromptBar from '../components/PromptBar.astro';
-import { innerPagePrompt, type InnerPageCommand, type Place } from '../site-map';
+import { innerPagePrompt, type BackLink, type InnerPageCommand, type Place } from '../site-map';
 import BaseLayout from './BaseLayout.astro';
 
 // The shell of every page but the home page: the prompt bar, a back link and `main` for the content.
@@ -9,7 +9,7 @@ import BaseLayout from './BaseLayout.astro';
 
 type Props = { title: string; description?: string } & (
   | { place: Place }
-  | { command: InnerPageCommand; back: { href: string; label: string } }
+  | { command: InnerPageCommand; back: BackLink }
 );
 
 const { title, description } = Astro.props;
