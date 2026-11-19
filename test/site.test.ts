@@ -9,6 +9,7 @@ import { readContent, type Content } from './content.ts';
 import { readExpectedPages, type ExpectedPage } from './expected-pages.ts';
 import { findFeedProblems } from './feed.ts';
 import {
+  findExtraPages,
   findLanguageProblems,
   findMissingPages,
   findNoteTagProblems,
@@ -47,6 +48,12 @@ test('every page the content calls for is in the build', () => {
   const problems = findMissingPages(expectedPages, build);
 
   assert.deepEqual(problems, [], `Missing pages:\n${listed(problems)}`);
+});
+
+test('every page in the build is one the content calls for', () => {
+  const problems = findExtraPages(expectedPages, build);
+
+  assert.deepEqual(problems, [], `Extra pages:\n${listed(problems)}`);
 });
 
 test('every expected page has the prompt it should', () => {
