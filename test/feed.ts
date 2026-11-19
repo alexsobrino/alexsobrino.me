@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
 import { isBuilt } from './built-site.ts';
-import { tagNames, type ContentNote } from './content.ts';
+import type { ExpectedNote, ExpectedPage } from './expected-pages.ts';
 
 export type FeedProblem = { item: string; message: string };
 
@@ -15,8 +15,11 @@ const parser = new XMLParser({
   isArray: (_name, jPath) => jPath === 'rss.channel.item' || jPath === 'rss.channel.item.category',
 });
 
-/** Everything wrong with the built RSS feed, checked against the Notes it should carry. */
-export async function findFeedProblems(buildDir: string, site: string, notes: ContentNote[]): Promise<FeedProblem[]> {
+/** A Note page the feed should carry an item for: where it is, its Note, and its Tags by name, in the Note's order. */
+type NotePage = { url: string; note: ExpectedNote; tagNames: string[] };
+
+/** Everything wrong with the built RSS feed, checked against the expected Note pages it should link to. */
+export async function findFeedProblems(buildDir: string, site: string, expected: ExpectedPage[]): Promise<FeedProblem[]> {
   const origin = new URL(site).origin;
   const xml = await readFile(join(buildDir, 'rss.xml'), 'utf8').catch(() => undefined);
   if (xml === undefined) return [{ item: 'feed', message: 'rss.xml is not in the build' }];
@@ -24,10 +27,13 @@ export async function findFeedProblems(buildDir: string, site: string, notes: Co
   if (channel === undefined) return [{ item: 'feed', message: 'rss.xml is not RSS: it has no <rss><channel>' }];
 
   const problems: FeedProblem[] = [];
-  const notesById = new Map(notes.map((note) => [note.id, note]));
+  const notePages: NotePage[] = expected.flatMap(({ url, note, tags = [] }) =>
+    note === undefined ? [] : [{ url, note, tagNames: tags.map(({ name }) => name) }],
+  );
+  const notePagesByUrl = new Map(notePages.map((page) => [page.url, page]));
   // Which item carries each Note, and the last item that carried one, to check the order.
   const itemOfNote = new Map<string, number>();
-  let previous: { position: number; note: ContentNote } | undefined;
+  let previous: { position: number; note: ExpectedNote } | undefined;
 
   for (const [index, { link = '', category = [] }] of ((channel.item ?? []) as FeedItem[]).entries()) {
     const position = index + 1;
@@ -41,13 +47,12 @@ export async function findFeedProblems(buildDir: string, site: string, notes: Co
       report(`links to ${url.pathname}, which is not built`);
     }
 
-    // A Note's page is at /notes/<id>/.
-    const id = decodeURIComponent(url.pathname).match(/^\/notes\/(.+)\/$/)?.[1];
-    const note = id === undefined ? undefined : notesById.get(id);
-    if (note === undefined) {
+    const page = notePagesByUrl.get(decodeURIComponent(url.pathname));
+    if (page === undefined) {
       report(`links to ${url.pathname}, which is no Note`);
       continue;
     }
+    const { note, tagNames } = page;
     if (itemOfNote.has(note.id)) {
       report(`is a second item for Note "${note.id}", after item ${itemOfNote.get(note.id)}`);
       continue;
@@ -59,13 +64,12 @@ export async function findFeedProblems(buildDir: string, site: string, notes: Co
     }
     previous = { position, note };
 
-    const names = tagNames(note);
-    if (JSON.stringify(category) !== JSON.stringify(names)) {
-      report(`categories are ${JSON.stringify(category)}, expected ${JSON.stringify(names)}`);
+    if (JSON.stringify(category) !== JSON.stringify(tagNames)) {
+      report(`categories are ${JSON.stringify(category)}, expected ${JSON.stringify(tagNames)}`);
     }
   }
 
-  for (const note of notes) {
+  for (const { note } of notePages) {
     if (!itemOfNote.has(note.id)) problems.push({ item: 'feed', message: `has no item for Note "${note.id}"` });
   }
   return problems;

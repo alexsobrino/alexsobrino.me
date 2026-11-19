@@ -14,13 +14,21 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
   assert.deepEqual(await readExpectedPages(dir, 'es'), [
     { url: '/', prompt: '~ $ whoami', siteLang: 'es' },
     { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
-    { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', contentLang: 'es', tags: [] },
+    {
+      url: '/notes/hola/',
+      prompt: '~/notes $ cat hola',
+      siteLang: 'es',
+      contentLang: 'es',
+      tags: [],
+      note: { id: 'hola', date: new Date('2026-09-01') },
+    },
     {
       url: '/notes/reto/',
       prompt: '~/notes $ cat reto',
       siteLang: 'es',
       contentLang: 'es',
       tags: [{ name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' }],
+      note: { id: 'reto', date: new Date('2026-10-02') },
     },
     {
       url: '/notes/tags/',
@@ -67,6 +75,25 @@ test("gives a Note page its Tags in the Note's order, not the order of tags.yml"
   ]);
 });
 
+test("gives each Note page its Note's slug and date, and no other page a Note", async () => {
+  const dir = await fakeFolder({
+    'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02T09:30:00+02:00\ntags: [libro]\n---\n',
+    'side-projects/sub9bar.md': '---\nname: Sub9bar\n---\n',
+    'tags.yml': 'libro:\n  name: Un libro al mes\n',
+  });
+
+  const notes = (await readExpectedPages(dir, 'es')).map(({ url, note }) => ({ url, note }));
+
+  assert.deepEqual(notes, [
+    { url: '/', note: undefined },
+    { url: '/notes/', note: undefined },
+    { url: '/notes/reto/', note: { id: 'reto', date: new Date('2026-10-02T07:30:00Z') } },
+    { url: '/notes/tags/', note: undefined },
+    { url: '/notes/tags/libro/', note: undefined },
+    { url: '/side-projects/sub9bar/', note: undefined },
+  ]);
+});
+
 test('gives a Tag with no Notes no page, and a Tag with several Notes one page', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [libros]\n---\n',
@@ -96,7 +123,14 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
   const pages = (await readExpectedPages(dir, 'es')).filter(({ url }) => url.includes('año'));
 
   assert.deepEqual(pages, [
-    { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
+    {
+      url: '/notes/año/',
+      prompt: '~/notes $ cat año',
+      siteLang: 'es',
+      contentLang: 'es',
+      tags: [{ name: 'Año', url: '/notes/tags/año/' }],
+      note: { id: 'año', date: new Date('2026-10-02') },
+    },
     { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   ]);
 });
