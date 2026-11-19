@@ -31,9 +31,9 @@ function pageUrl(file: string): string {
   return file.replace(/(^|\/)index\.html$/, '$1');
 }
 
-/** Whether the build serves something at this path: a file, or a folder's `index.html`. */
+/** Whether the build serves something at this URL path, percent-encoded as in a URL: a file, or a folder's `index.html`. */
 export function isBuilt(build: Build, pathname: string): boolean {
-  const path = posix.normalize(pathname);
+  const path = posix.normalize(decodeURIComponent(pathname));
   return build.files.has(path) || build.files.has(posix.join(path, 'index.html'));
 }
 
@@ -47,7 +47,7 @@ export function findBrokenLinks(build: Build, site: string): BrokenLink[] {
     for (const link of html.querySelectorAll('[href], [src], [srcset]').flatMap(references)) {
       const url = new URL(link, new URL(page, site));
       if (url.origin !== origin) continue;
-      if (!isBuilt(build, decodeURIComponent(url.pathname))) broken.push({ page, link });
+      if (!isBuilt(build, url.pathname)) broken.push({ page, link });
     }
   }
   return broken;

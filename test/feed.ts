@@ -40,7 +40,7 @@ export function findFeedProblems(build: Build, site: string, expected: ExpectedP
     const url = new URL(link, site);
     if (!URL.canParse(link)) report(`link is relative, expected an absolute URL on ${origin}`);
     else if (url.origin !== origin) report(`link is not on ${origin}`);
-    else if (!isBuilt(build, decodeURIComponent(url.pathname))) report(`links to ${url.pathname}, which is not built`);
+    else if (!isBuilt(build, url.pathname)) report(`links to ${url.pathname}, which is not built`);
 
     const page = notePagesByUrl.get(decodeURIComponent(url.pathname));
     if (page === undefined) {
