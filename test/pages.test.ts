@@ -31,7 +31,7 @@ function tagListing(items: { name: string; href?: string; count: number }[]): st
   return `<html lang="es"><body><main><h1 class="page-title">Etiquetas</h1><ul>${listed.join('')}</ul></main></body></html>`;
 }
 
-/** The expected Tags listing, its rows in site-language order: "Ética" before "Un libro al mes", though É comes after Z in Unicode. */
+/** The Notes listing, which has no Tag rows to check, and the Tags listing, its rows in site-language order: "Ética" before "Un libro al mes", though É comes after Z in Unicode. */
 const tagListingPages: ExpectedPage[] = [
   { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es' },
   {

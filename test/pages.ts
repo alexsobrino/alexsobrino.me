@@ -96,31 +96,33 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
 
 /** Everything wrong with the expected Tags listing: it should list its rows by name, in order, each with its Note count and linking to its Tag page. */
 export function findTagListProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
-  const listing = expected.find(({ tagRows }) => tagRows !== undefined);
-  if (listing === undefined) return [];
-  const { url: page, tagRows: rows = [] } = listing;
-  const html = build.get(page);
-  if (html === undefined) return [{ page, message: 'is not in the build' }];
-
   const problems: PageProblem[] = [];
-  const items = html.querySelectorAll('main li');
-  const listed = items.map(textOf);
-  const expectedItems = rows.map(({ name, noteCount }) => `${name} · ${noteCount}`);
-  if (!isDeepStrictEqual(listed, expectedItems)) {
-    problems.push({ page, message: `lists ${JSON.stringify(listed)}, expected ${JSON.stringify(expectedItems)}` });
-  }
-  for (const item of items) {
-    const link = item.querySelector('a');
-    if (link === null) {
-      problems.push({ page, message: `"${textOf(item)}" has no link` });
+  for (const { url: page, tagRows: rows } of expected) {
+    if (rows === undefined) continue;
+    const html = build.get(page);
+    if (html === undefined) {
+      problems.push({ page, message: 'is not in the build' });
       continue;
     }
-    const name = textOf(link);
-    const href = decodeURIComponent(link.getAttribute('href') ?? '');
-    // A Tag that shouldn't be listed at all is already reported above.
-    const row = rows.find((row) => row.name === name);
-    if (row !== undefined && href !== row.url) {
-      problems.push({ page, message: `"${name}" links to ${href}, which is not its Tag page` });
+    const items = html.querySelectorAll('main li');
+    const listed = items.map(textOf);
+    const expectedItems = rows.map(({ name, noteCount }) => `${name} · ${noteCount}`);
+    if (!isDeepStrictEqual(listed, expectedItems)) {
+      problems.push({ page, message: `lists ${JSON.stringify(listed)}, expected ${JSON.stringify(expectedItems)}` });
+    }
+    for (const item of items) {
+      const link = item.querySelector('a');
+      if (link === null) {
+        problems.push({ page, message: `"${textOf(item)}" has no link` });
+        continue;
+      }
+      const name = textOf(link);
+      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      // A Tag that shouldn't be listed at all is already reported above.
+      const row = rows.find((row) => row.name === name);
+      if (row !== undefined && href !== row.url) {
+        problems.push({ page, message: `"${name}" links to ${href}, which is not its Tag page` });
+      }
     }
   }
   return problems;

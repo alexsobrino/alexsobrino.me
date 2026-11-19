@@ -25,9 +25,11 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
   const { notes, sideProjects } = await readContent(contentDir);
   // A Tag with no Notes gets no page.
   const tagNamesById = new Map(notes.flatMap((note) => note.tags.map(({ id, name }) => [id, name])));
-  // A Note counts once for each Tag it lists.
+  // A Note counts once for each Tag it lists, so every Tag in tagNamesById has a count.
   const noteCounts = new Map<string, number>();
-  for (const id of notes.flatMap((note) => [...new Set(note.tags.map(({ id }) => id))])) noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
+  for (const note of notes) {
+    for (const id of new Set(note.tags.map(({ id }) => id))) noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
+  }
   const tagRows = [...tagNamesById]
     .map(([id, name]) => ({ name, noteCount: noteCounts.get(id)!, url: tagPageUrl(id) }))
     .sort((a, b) => a.name.localeCompare(b.name, siteLang));
