@@ -22,7 +22,12 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
       contentLang: 'es',
       tags: [{ name: 'Un libro al mes', url: '/notes/tags/un-libro-al-mes/' }],
     },
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+    {
+      url: '/notes/tags/',
+      prompt: '~/notes/tags $ ls',
+      siteLang: 'es',
+      tagRows: [{ name: 'Un libro al mes', noteCount: 1, url: '/notes/tags/un-libro-al-mes/' }],
+    },
     { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
     { url: '/side-projects/sub9bar/', prompt: '~/side-projects $ cat sub9bar', siteLang: 'es', contentLang: 'es' },
   ]);
@@ -72,7 +77,12 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
   const tagPages = (await readExpectedPages(dir, 'es')).filter(({ url }) => url.startsWith('/notes/tags/'));
 
   assert.deepEqual(tagPages, [
-    { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es' },
+    {
+      url: '/notes/tags/',
+      prompt: '~/notes/tags $ ls',
+      siteLang: 'es',
+      tagRows: [{ name: 'Un libro al mes', noteCount: 2, url: '/notes/tags/libros/' }],
+    },
     { url: '/notes/tags/libros/', prompt: '~/notes/tags/libros $ ls', siteLang: 'es', title: 'Un libro al mes' },
   ]);
 });
@@ -89,4 +99,33 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
     { url: '/notes/año/', prompt: '~/notes $ cat año', siteLang: 'es', contentLang: 'es', tags: [{ name: 'Año', url: '/notes/tags/año/' }] },
     { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   ]);
+});
+
+test('gives the Tags listing a row per Tag with Notes, in site-language order, counting a Note once per Tag it lists', async () => {
+  // "Ética" sorts before "Un libro al mes" in Spanish, though É comes after Z in Unicode.
+  const dir = await fakeFolder({
+    'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [libro]\n---\n',
+    'notes/etica.md': '---\ntitle: Ética\ndate: 2026-09-01\ntags: [zen, etica, libro, libro]\n---\n',
+    'notes/hola.md': '---\ntitle: Hola\ndate: 2026-08-01\n---\n',
+    'tags.yml': 'libro:\n  name: Un libro al mes\netica:\n  name: Ética\nzen:\n  name: Zen\nsin-notas:\n  name: Sin notas\n',
+  });
+
+  const listing = (await readExpectedPages(dir, 'es')).find(({ url }) => url === '/notes/tags/');
+
+  assert.deepEqual(listing?.tagRows, [
+    { name: 'Ética', noteCount: 1, url: '/notes/tags/etica/' },
+    { name: 'Un libro al mes', noteCount: 2, url: '/notes/tags/libro/' },
+    { name: 'Zen', noteCount: 1, url: '/notes/tags/zen/' },
+  ]);
+});
+
+test('gives the Tags listing no rows when no Note has Tags', async () => {
+  const dir = await fakeFolder({
+    'notes/hola.md': '---\ntitle: Hola\ndate: 2026-08-01\n---\n',
+    'tags.yml': 'sin-notas:\n  name: Sin notas\n',
+  });
+
+  const listing = (await readExpectedPages(dir, 'es')).find(({ url }) => url === '/notes/tags/');
+
+  assert.deepEqual(listing?.tagRows, []);
 });

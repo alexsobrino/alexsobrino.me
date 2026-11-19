@@ -74,8 +74,8 @@ test("every Note page shows its Tags after the date, in the Note's order, each l
   assert.deepEqual(problems, [], `Wrong Tags on Note pages:\n${listed(problems)}`);
 });
 
-test('the Tags listing shows every Tag that has Notes, by name, with its Note count and a link to its page', async () => {
-  const problems = await findTagListProblems(buildDir, siteLanguage, content.notes);
+test('the Tags listing shows every Tag that has Notes, by name, with its Note count and a link to its page', () => {
+  const problems = findTagListProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Tags listing problems:\n${listed(problems)}`);
 });
