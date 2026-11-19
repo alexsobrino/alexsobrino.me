@@ -12,7 +12,10 @@ export type ExpectedTagRow = ExpectedTag & { noteCount: number };
 /** The Note a Note page shows: its slug and date. */
 export type ExpectedNote = { id: string; date: Date };
 
-/** A page the build should have: its URL, as the build names its folder, its prompt, its site language and its document title. A Note or Side Project page also has its Content language; a Note page its Note and that Note's Tags, in the Note's order; a Tag page its title; and the Tags listing its rows. */
+/** A Note as a listing of Notes shows it: its slug and date, linking to its page. */
+export type ExpectedListedNote = ExpectedNote & { url: string };
+
+/** A page the build should have: its URL, as the build names its folder, its prompt, its site language and its document title. A Note or Side Project page also has its Content language; a Note page its Note and that Note's Tags, in the Note's order; a Tag page its title; the Tags listing its rows; and the Notes listing and each Tag page the Notes they list, newest first. */
 export type ExpectedPage = {
   url: string;
   prompt: string;
@@ -23,6 +26,7 @@ export type ExpectedPage = {
   note?: ExpectedNote;
   title?: string;
   tagRows?: ExpectedTagRow[];
+  listedNotes?: ExpectedListedNote[];
 };
 
 /** Every expected page, in URL order: the home page, the Notes and Tags listings, each Note, each Tag that has Notes, and each Side Project. */
@@ -35,14 +39,24 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
   for (const note of notes) {
     for (const id of new Set(note.tags.map(({ id }) => id))) noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
   }
+  // Newest first, as every listing of Notes shows them.
+  const listedNotes = notes
+    .map(({ id, date, tags }) => ({ note: { id, date, url: notePageUrl(id) }, tagIds: new Set(tags.map(({ id }) => id)) }))
+    .sort((a, b) => b.note.date.valueOf() - a.note.date.valueOf());
   const tagRows = [...tagNamesById]
     .map(([id, name]) => ({ name, noteCount: noteCounts.get(id)!, url: tagPageUrl(id) }))
     .sort((a, b) => a.name.localeCompare(b.name, siteLang));
   const pages: ExpectedPage[] = [
     { url: '/', prompt: '~ $ whoami', siteLang, documentTitle: siteName },
-    { url: '/notes/', prompt: '~/notes $ ls', siteLang, documentTitle: documentTitle('Notas') },
+    {
+      url: '/notes/',
+      prompt: '~/notes $ ls',
+      siteLang,
+      documentTitle: documentTitle('Notas'),
+      listedNotes: listedNotes.map(({ note }) => note),
+    },
     ...notes.map(({ id, title, date, tags, lang: contentLang }) => ({
-      url: `/notes/${id}/`,
+      url: notePageUrl(id),
       prompt: `~/notes $ cat ${id}`,
       siteLang,
       documentTitle: documentTitle(title),
@@ -57,6 +71,7 @@ export async function readExpectedPages(contentDir: string, siteLang: string): P
       siteLang,
       documentTitle: documentTitle(name),
       title: name,
+      listedNotes: listedNotes.filter(({ tagIds }) => tagIds.has(id)).map(({ note }) => note),
     })),
     ...sideProjects.map(({ id, name, lang: contentLang }) => ({
       url: `/side-projects/${id}/`,
@@ -75,6 +90,11 @@ const siteName = 'Alex Sobrino';
 /** An inner page's document title: its name, then the site's. */
 function documentTitle(name: string): string {
   return `${name} · ${siteName}`;
+}
+
+/** A Note's page, /notes/<id>/. */
+function notePageUrl(id: string): string {
+  return `/notes/${id}/`;
 }
 
 /** A Tag's page, /notes/tags/<id>/. */

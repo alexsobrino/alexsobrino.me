@@ -89,9 +89,7 @@ npm run check && npm run build && npm test
 
 Fix what they report in the Note and `tags.yml`. A failure in any other file is not this Note's to fix: stop and tell Alex.
 
-Then confirm the Note is listed where readers look for it: `href="/notes/<slug>/"` appears in `dist/notes/index.html` and in `dist/notes/tags/<tag-slug>/index.html` for each of its Tags.
-
-Done when check, build and tests pass, and the Note's link is on the Notes listing and on every one of its Tag pages.
+Done when check, build and tests pass. The tests already confirm the Note is on the Notes listing and on every one of its Tag pages.
 
 ## 6. Hand it back
 
