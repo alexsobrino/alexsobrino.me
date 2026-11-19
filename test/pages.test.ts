@@ -405,24 +405,24 @@ test('reports a Tag that does not link to its own Tag page', async () => {
   ]);
 });
 
-/** A Tag page as it renders its title: the Tag's name as the page heading. */
+/** A Tag page as it renders its title, the Tag's name. */
 function tagPage(title: string): string {
   return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul></ul></main></body></html>`;
 }
 
-/** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose heading is no Tag's name. */
+/** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose title is no Tag's name. */
 const tagTitlePages: ExpectedPage[] = [
   { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', tagRows: [] },
   { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
   { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
 ];
 
-test("accepts Tag pages titled with their Tag's name, leaving other pages' headings alone", async () => {
+test("accepts Tag pages titled with their Tag's name, however the title's whitespace runs, leaving other pages' titles alone", async () => {
   const build = await readBuild(
     await fakeFolder({
       'notes/tags/index.html': tagPage('Etiquetas'),
       'notes/tags/año/index.html': tagPage('Año'),
-      'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
+      'notes/tags/un-libro-al-mes/index.html': tagPage('Un  libro\n al mes'),
     }),
   );
 
@@ -433,12 +433,13 @@ test("reports a Tag page whose title isn't its Tag's name, naming the page", asy
   const build = await readBuild(
     await fakeFolder({
       'notes/tags/año/index.html': tagPage('Un libro al mes'),
-      'notes/tags/un-libro-al-mes/index.html': tagPage('Un  libro\n al mes'),
+      'notes/tags/un-libro-al-mes/index.html': tagPage('Año'),
     }),
   );
 
   assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
     { page: '/notes/tags/año/', message: 'title reads "Un libro al mes", expected "Año"' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'title reads "Año", expected "Un libro al mes"' },
   ]);
 });
 

@@ -24,15 +24,8 @@ export function findPromptProblems(expected: ExpectedPage[], build: Build): Page
   for (const { url: page, prompt: expectedPrompt } of expected) {
     const html = build.pages.get(page);
     if (html === undefined) continue;
-    const prompt = html.querySelector('.prompt');
-    if (prompt === null) {
-      problems.push({ page, message: `no prompt, expected "${expectedPrompt}"` });
-      continue;
-    }
-    const actual = textOf(prompt);
-    if (actual !== expectedPrompt) {
-      problems.push({ page, message: `prompt reads "${actual}", expected "${expectedPrompt}"` });
-    }
+    const problem = textProblem('prompt', html.querySelector('.prompt'), expectedPrompt);
+    if (problem !== undefined) problems.push({ page, message: problem });
   }
   return problems;
 }
@@ -129,15 +122,8 @@ export function findTagTitleProblems(expected: ExpectedPage[], build: Build): Pa
   for (const { url: page, title: expectedTitle } of expected) {
     const html = build.pages.get(page);
     if (expectedTitle === undefined || html === undefined) continue;
-    const title = html.querySelector('.page-title');
-    if (title === null) {
-      problems.push({ page, message: `no title, expected "${expectedTitle}"` });
-      continue;
-    }
-    const actual = textOf(title);
-    if (actual !== expectedTitle) {
-      problems.push({ page, message: `title reads "${actual}", expected "${expectedTitle}"` });
-    }
+    const problem = textProblem('title', html.querySelector('.page-title'), expectedTitle);
+    if (problem !== undefined) problems.push({ page, message: problem });
   }
   return problems;
 }
@@ -150,6 +136,13 @@ function describeTags(names: string[]): string {
 /** An element's text as it reads, whitespace collapsed; empty for no element. */
 function textOf(element: HTMLElement | null): string {
   return element?.text.replace(/\s+/g, ' ').trim() ?? '';
+}
+
+/** What's wrong with an element whose text should read as expected, such as a page's prompt, if anything. */
+function textProblem(name: string, element: HTMLElement | null, expected: string): string | undefined {
+  if (element === null) return `no ${name}, expected "${expected}"`;
+  const actual = textOf(element);
+  if (actual !== expected) return `${name} reads "${actual}", expected "${expected}"`;
 }
 
 /** What's wrong with an element's lang, if anything. */
