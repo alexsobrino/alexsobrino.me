@@ -24,15 +24,8 @@ export function findPromptProblems(expected: ExpectedPage[], build: Build): Page
   for (const { url: page, prompt: expectedPrompt } of expected) {
     const html = build.pages.get(page);
     if (html === undefined) continue;
-    const prompt = html.querySelector('.prompt');
-    if (prompt === null) {
-      problems.push({ page, message: `no prompt, expected "${expectedPrompt}"` });
-      continue;
-    }
-    const actual = textOf(prompt);
-    if (actual !== expectedPrompt) {
-      problems.push({ page, message: `prompt reads "${actual}", expected "${expectedPrompt}"` });
-    }
+    const problem = textProblem('prompt', html.querySelector('.prompt'), expectedPrompt);
+    if (problem !== undefined) problems.push({ page, message: problem });
   }
   return problems;
 }
@@ -123,6 +116,18 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
   return problems;
 }
 
+/** Every expected Tag page in the build whose title is missing or isn't its Tag's name. A page not in the build is left to findMissingPages. */
+export function findTagTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  const problems: PageProblem[] = [];
+  for (const { url: page, title: expectedTitle } of expected) {
+    const html = build.pages.get(page);
+    if (expectedTitle === undefined || html === undefined) continue;
+    const problem = textProblem('title', html.querySelector('.page-title'), expectedTitle);
+    if (problem !== undefined) problems.push({ page, message: problem });
+  }
+  return problems;
+}
+
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
 function describeTags(names: string[]): string {
   return names.length === 0 ? 'no Tags' : `Tags ${names.map((name) => `"${name}"`).join(', ')}`;
@@ -131,6 +136,13 @@ function describeTags(names: string[]): string {
 /** An element's text as it reads, whitespace collapsed; empty for no element. */
 function textOf(element: HTMLElement | null): string {
   return element?.text.replace(/\s+/g, ' ').trim() ?? '';
+}
+
+/** What's wrong with an element whose text should read as expected, such as a page's prompt, if anything. */
+function textProblem(name: string, element: HTMLElement | null, expected: string): string | undefined {
+  if (element === null) return `no ${name}, expected "${expected}"`;
+  const actual = textOf(element);
+  if (actual !== expected) return `${name} reads "${actual}", expected "${expected}"`;
 }
 
 /** What's wrong with an element's lang, if anything. */

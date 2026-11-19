@@ -14,6 +14,7 @@ import {
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
+  findTagTitleProblems,
   type PageProblem,
 } from './pages.ts';
 
@@ -73,6 +74,12 @@ test('the Tags listing shows every Tag that has Notes, by name, with its Note co
   const problems = findTagListProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Tags listing problems:\n${listed(problems)}`);
+});
+
+test("every Tag page is titled with its Tag's name", () => {
+  const problems = findTagTitleProblems(expectedPages, build);
+
+  assert.deepEqual(problems, [], `Wrong Tag page titles:\n${listed(problems)}`);
 });
 
 test('the RSS feed carries one item per Note, newest first, linking to its page with its Tags', () => {
