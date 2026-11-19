@@ -1,32 +1,23 @@
 ---
 import { Image } from 'astro:assets';
-import { render } from 'astro:content';
 import SideProjectStatus from '../../components/SideProjectStatus.astro';
-import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
+import PiecePageLayout from '../../layouts/PiecePageLayout.astro';
 import { getSideProjectPaths } from '../../side-projects';
 import { sideProjectPlace } from '../../site-map';
 
 export const getStaticPaths = getSideProjectPaths;
 
 const { sideProject } = Astro.props;
-const { Content } = await render(sideProject);
-const { name, summary, image, imageAlt, url, lang } = sideProject.data;
+const { name, summary, image, imageAlt, url } = sideProject.data;
 ---
 
-<InnerPageLayout title={name} description={summary} place={sideProjectPlace(sideProject)}>
-  <article lang={lang}>
-    <h1 class="page-title">{name}</h1>
-    <p class="page-lede">{summary}</p>
-    <p class="page-meta">
-      <SideProjectStatus sideProject={sideProject} />
-      {url && <a href={url}>{new URL(url).host}</a>}
-    </p>
-    <figure class="page-figure">
-      <Image src={image} alt={imageAlt} widths={[720, 1440]} sizes="(min-width: 46rem) 44rem, 100vw" />
-    </figure>
-    <div class="prose">
-      <Content />
-    </div>
-    {url && <p class="outbound"><a href={url}>Visitar {name} →</a></p>}
-  </article>
-</InnerPageLayout>
+<PiecePageLayout piece={sideProject} title={name} description={summary} lede={summary} place={sideProjectPlace(sideProject)}>
+  <Fragment slot="meta">
+    <SideProjectStatus sideProject={sideProject} />
+    {url && <a href={url}>{new URL(url).host}</a>}
+  </Fragment>
+  <figure class="page-figure" slot="before-body">
+    <Image src={image} alt={imageAlt} widths={[720, 1440]} sizes="(min-width: 46rem) 44rem, 100vw" />
+  </figure>
+  {url && <p class="outbound" slot="after-body"><a href={url}>Visitar {name} →</a></p>}
+</PiecePageLayout>

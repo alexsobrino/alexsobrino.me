@@ -1,31 +1,23 @@
 ---
-import { render } from 'astro:content';
-import InnerPageLayout from '../../layouts/InnerPageLayout.astro';
+import PiecePageLayout from '../../layouts/PiecePageLayout.astro';
 import { formatDate, getNotePaths } from '../../notes';
 import { notePlace, tagPlace } from '../../site-map';
 
 export const getStaticPaths = getNotePaths;
 
 const { note } = Astro.props;
-const { Content } = await render(note);
 ---
 
-<InnerPageLayout title={note.data.title} description={note.data.description} place={notePlace(note)}>
-  <article lang={note.data.lang}>
-    <h1 class="page-title">{note.data.title}</h1>
-    <p class="page-meta">
-      <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
-      {
-        note.tags.map((tag) => (
-          <>
-            {' · '}
-            <a href={tagPlace(tag).url}>{tag.data.name}</a>
-          </>
-        ))
-      }
-    </p>
-    <div class="prose">
-      <Content />
-    </div>
-  </article>
-</InnerPageLayout>
+<PiecePageLayout piece={note} title={note.data.title} description={note.data.description} place={notePlace(note)}>
+  <Fragment slot="meta">
+    <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date)}</time>
+    {
+      note.tags.map((tag) => (
+        <>
+          {' · '}
+          <a href={tagPlace(tag).url}>{tag.data.name}</a>
+        </>
+      ))
+    }
+  </Fragment>
+</PiecePageLayout>

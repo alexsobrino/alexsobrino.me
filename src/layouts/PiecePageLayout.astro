@@ -1,0 +1,43 @@
+---
+import { render } from 'astro:content';
+import type { Note } from '../notes';
+import type { SideProject } from '../side-projects';
+import type { Place } from '../site-map';
+import InnerPageLayout from './InnerPageLayout.astro';
+
+// The page of a Piece: a Note or a Side Project.
+// It owns the shape both share: the piece rendered into an `<article>` in the piece's Content
+// language, its title as the page heading, a meta line and the body as prose, on the inner page
+// shell at the piece's place in the site map.
+// Each page fills in only its own parts:
+// - `lede`: a line under the heading
+// - slot `meta`: what the meta line shows
+// - slot `before-body`: anything between the meta line and the body
+// - slot `after-body`: anything after the body
+
+type Piece = Note | SideProject;
+
+interface Props {
+  piece: Piece;
+  title: string;
+  description?: string;
+  lede?: string;
+  place: Place;
+}
+
+const { piece, title, description, lede, place } = Astro.props;
+const { Content } = await render(piece);
+---
+
+<InnerPageLayout title={title} description={description} place={place}>
+  <article lang={piece.data.lang}>
+    <h1 class="page-title">{title}</h1>
+    {lede && <p class="page-lede">{lede}</p>}
+    <p class="page-meta"><slot name="meta" /></p>
+    <slot name="before-body" />
+    <div class="prose">
+      <Content />
+    </div>
+    <slot name="after-body" />
+  </article>
+</InnerPageLayout>
