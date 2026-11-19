@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { HTMLElement } from 'node-html-parser';
 import type { Build } from './built-site.ts';
-import type { ExpectedPage } from './expected-pages.ts';
+import type { ExpectedListedNote, ExpectedPage } from './expected-pages.ts';
 
 export type PageProblem = { page: string; message: string };
 
@@ -65,7 +65,7 @@ export function findNoteTagProblems(expected: ExpectedPage[], build: Build): Pag
     // The links read as the Tags, in order, so each link is the Tag at its place.
     for (const [i, link] of links.entries()) {
       const { name, url } = tags[i];
-      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const href = hrefOf(link);
       if (href === url) continue;
       const title = expected.find((other) => other.url === href)?.title;
       if (title === undefined) problems.push({ page, message: `Tag "${name}" links to ${href}, which is no Tag page` });
@@ -98,12 +98,60 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
         continue;
       }
       const name = textOf(link);
-      const href = decodeURIComponent(link.getAttribute('href') ?? '');
+      const href = hrefOf(link);
       // A Tag that shouldn't be listed at all is already reported above.
       const row = rows.find((row) => row.name === name);
       if (row !== undefined && href !== row.url) {
         problems.push({ page, message: `"${name}" links to ${href}, which is not its Tag page` });
       }
+    }
+  }
+  return problems;
+}
+
+/** Every Note an expected listing of Notes in the build leaves out, lists though it shouldn't, or lists out of order; it should list its Notes newest first, each linking to its page. A page not in the build is left to findMissingPages. */
+export function findNoteListProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  // Every Note by its page, so a listing that lists one it shouldn't can name it.
+  const noteIdsByUrl = new Map(expected.flatMap(({ url, note }) => (note === undefined ? [] : [[url, note.id]])));
+  const problems: PageProblem[] = [];
+  for (const { url: page, listedNotes } of expected) {
+    const html = build.pages.get(page);
+    if (listedNotes === undefined || html === undefined) continue;
+    const expectedByUrl = new Map(listedNotes.map((note) => [note.url, note]));
+    const listedUrls = new Set<string>();
+    // The last Note listed, to check the order.
+    let previous: ExpectedListedNote | undefined;
+    for (const [index, item] of html.querySelectorAll('main li').entries()) {
+      const link = item.querySelector('a');
+      // The Note it should link to is reported as not listed.
+      if (link === null) {
+        problems.push({ page, message: `lists item ${index + 1} with no link` });
+        continue;
+      }
+      const href = hrefOf(link);
+      const note = expectedByUrl.get(href);
+      if (note === undefined) {
+        const id = noteIdsByUrl.get(href);
+        if (id === undefined) problems.push({ page, message: `lists "${textOf(link)}", linking to ${href}, which is no Note page` });
+        else problems.push({ page, message: `lists Note "${id}", which it should not` });
+        continue;
+      }
+      if (listedUrls.has(href)) {
+        problems.push({ page, message: `lists Note "${note.id}" twice` });
+        continue;
+      }
+      listedUrls.add(href);
+      // Notes of the same date may come in either order.
+      if (previous !== undefined && note.date > previous.date) {
+        problems.push({
+          page,
+          message: `lists Note "${note.id}" (${day(note.date)}) after Note "${previous.id}" (${day(previous.date)}), expected newest first`,
+        });
+      }
+      previous = note;
+    }
+    for (const { id, url } of listedNotes) {
+      if (!listedUrls.has(url)) problems.push({ page, message: `does not list Note "${id}"` });
     }
   }
   return problems;
@@ -136,6 +184,16 @@ function findTextProblems(
     if (problem !== undefined) problems.push({ page: expectedPage.url, message: problem });
   }
   return problems;
+}
+
+/** Where a link goes, decoded, as Expected pages write a URL: the build encodes a non-ASCII slug. */
+function hrefOf(link: HTMLElement): string {
+  return decodeURIComponent(link.getAttribute('href') ?? '');
+}
+
+/** A date as YYYY-MM-DD. */
+function day(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */

@@ -8,6 +8,7 @@ import {
   findExtraPages,
   findLanguageProblems,
   findMissingPages,
+  findNoteListProblems,
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
@@ -516,4 +517,152 @@ test('reports a page with no document title, even with a title elsewhere on it, 
     { page: '/', message: 'no document title, expected "Alex Sobrino"' },
     { page: '/notes/reto/', message: 'no document title, expected "Reto: un libro al mes · Alex Sobrino"' },
   ]);
+});
+
+/** A listing of Notes as NoteList renders it: one item per Note, its date, then its title linking to its page. With no link, an item shows its title alone. */
+function noteListing(title: string, notes: { title: string; href?: string }[]): string {
+  const items = notes.map(({ title, href }) => {
+    const name = href === undefined ? title : `<a href="${href}">${title}</a>`;
+    return `<li class="note" lang="es"><time class="note__date" datetime="2026-10-02T00:00:00.000Z">2 oct 2026</time>${name}</li>`;
+  });
+  return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul class="notes prose">${items.join('')}</ul></main></body></html>`;
+}
+
+const etica = { id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' };
+const reto = { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' };
+const hola = { id: 'hola', date: new Date('2026-08-01'), url: '/notes/hola/' };
+
+/** The Notes listing with three Notes, newest first, a Tag page with two of them, and a Tag page with a non-ASCII slug listing a Note with one. */
+const noteListPages: ExpectedPage[] = [
+  { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino', listedNotes: [etica, reto, hola] },
+  {
+    url: '/notes/tags/año/',
+    prompt: '~/notes/tags/año $ ls',
+    siteLang: 'es',
+    documentTitle: 'Año · Alex Sobrino',
+    title: 'Año',
+    listedNotes: [{ id: 'año', date: new Date('2026-12-01'), url: '/notes/año/' }],
+  },
+  {
+    url: '/notes/tags/un-libro-al-mes/',
+    prompt: '~/notes/tags/un-libro-al-mes $ ls',
+    siteLang: 'es',
+    documentTitle: 'Un libro al mes · Alex Sobrino',
+    title: 'Un libro al mes',
+    listedNotes: [etica, reto],
+  },
+];
+
+test('accepts listings that list their Notes newest first, each linking to its page, however its URL is encoded', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/index.html': noteListing('Notas', [
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Reto', href: '/notes/reto/' },
+        { title: 'Hola', href: '/notes/hola/' },
+      ]),
+      'notes/tags/año/index.html': noteListing('Año', [{ title: 'Año', href: '/notes/a%C3%B1o/' }]),
+      'notes/tags/un-libro-al-mes/index.html': noteListing('Un libro al mes', [
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Reto', href: '/notes/reto/' },
+      ]),
+    }),
+  );
+
+  assert.deepEqual(findNoteListProblems(noteListPages, build), []);
+});
+
+test('reports a Note a listing leaves out, naming the page and the Note', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/index.html': noteListing('Notas', [
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Hola', href: '/notes/hola/' },
+      ]),
+      'notes/tags/año/index.html': noteListing('Año', []),
+      'notes/tags/un-libro-al-mes/index.html': noteListing('Un libro al mes', [{ title: 'Reto', href: '/notes/reto/' }]),
+    }),
+  );
+
+  assert.deepEqual(findNoteListProblems(noteListPages, build), [
+    { page: '/notes/', message: 'does not list Note "reto"' },
+    { page: '/notes/tags/año/', message: 'does not list Note "año"' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'does not list Note "etica"' },
+  ]);
+});
+
+test('reports a Note a listing lists though it should not, or lists twice, and an item that links to no Note or to nothing', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/index.html': noteListing('Notas', [
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Reto', href: '/notes/reto/' },
+        { title: 'Otra', href: '/notes/otra/' },
+        { title: 'Hola', href: '/notes/hola/' },
+        { title: 'Etiquetas', href: '/notes/tags/' },
+      ]),
+      'notes/tags/año/index.html': noteListing('Año', [{ title: 'Año', href: '/notes/a%C3%B1o/' }, { title: 'Hola' }]),
+      'notes/tags/un-libro-al-mes/index.html': noteListing('Un libro al mes', [
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Reto', href: '/notes/reto/' },
+        { title: 'Hola', href: '/notes/hola/' },
+        { title: 'Reto', href: '/notes/reto/' },
+      ]),
+    }),
+  );
+  // Hola's page, so a listing that shouldn't list it can name it.
+  const holaPage: ExpectedPage = { url: '/notes/hola/', prompt: '~/notes $ cat hola', siteLang: 'es', documentTitle: 'Hola · Alex Sobrino', contentLang: 'es', note: { id: 'hola', date: hola.date } };
+
+  assert.deepEqual(findNoteListProblems([...noteListPages, holaPage], build), [
+    { page: '/notes/', message: 'lists "Otra", linking to /notes/otra/, which is no Note page' },
+    { page: '/notes/', message: 'lists "Etiquetas", linking to /notes/tags/, which is no Note page' },
+    { page: '/notes/tags/año/', message: 'lists item 2 with no link' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'lists Note "hola", which it should not' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'lists Note "reto" twice' },
+  ]);
+});
+
+test('reports a Note a listing lists before a newer one, naming the page and both Notes', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/index.html': noteListing('Notas', [
+        { title: 'Reto', href: '/notes/reto/' },
+        { title: 'Ética', href: '/notes/etica/' },
+        { title: 'Hola', href: '/notes/hola/' },
+      ]),
+      'notes/tags/año/index.html': noteListing('Año', [{ title: 'Año', href: '/notes/a%C3%B1o/' }]),
+      'notes/tags/un-libro-al-mes/index.html': noteListing('Un libro al mes', [
+        { title: 'Reto', href: '/notes/reto/' },
+        { title: 'Ética', href: '/notes/etica/' },
+      ]),
+    }),
+  );
+
+  assert.deepEqual(findNoteListProblems(noteListPages, build), [
+    { page: '/notes/', message: 'lists Note "etica" (2026-11-01) after Note "reto" (2026-10-02), expected newest first' },
+    { page: '/notes/tags/un-libro-al-mes/', message: 'lists Note "etica" (2026-11-01) after Note "reto" (2026-10-02), expected newest first' },
+  ]);
+});
+
+test('accepts Notes of the same date in either order', async () => {
+  const otra = { id: 'otra', date: reto.date, url: '/notes/otra/' };
+  const expected: ExpectedPage[] = [
+    { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino', listedNotes: [reto, otra] },
+  ];
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/index.html': noteListing('Notas', [
+        { title: 'Otra', href: '/notes/otra/' },
+        { title: 'Reto', href: '/notes/reto/' },
+      ]),
+    }),
+  );
+
+  assert.deepEqual(findNoteListProblems(expected, build), []);
+});
+
+test('leaves a listing not in the build to the missing-page check', async () => {
+  const build = await readBuild(await fakeFolder({ 'index.html': '' }));
+
+  assert.deepEqual(findNoteListProblems(noteListPages, build), []);
 });

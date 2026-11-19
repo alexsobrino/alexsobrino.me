@@ -12,6 +12,7 @@ import {
   findExtraPages,
   findLanguageProblems,
   findMissingPages,
+  findNoteListProblems,
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
@@ -69,6 +70,12 @@ test("every Note page shows its Tags after the date, in the Note's order, each l
   const problems = findNoteTagProblems(expectedPages, build);
 
   assert.deepEqual(problems, [], `Wrong Tags on Note pages:\n${listed(problems)}`);
+});
+
+test('the Notes listing lists every Note, and each Tag page its Notes, newest first, each linking to its page', () => {
+  const problems = findNoteListProblems(expectedPages, build);
+
+  assert.deepEqual(problems, [], `Wrong Notes in listings:\n${listed(problems)}`);
 });
 
 test('the Tags listing shows every Tag that has Notes, by name, with its Note count and a link to its page', () => {

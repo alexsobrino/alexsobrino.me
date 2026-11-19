@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readExpectedPages } from './expected-pages.ts';
 import { fakeFolder } from './fake-folder.ts';
 
-test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts, languages and document titles', async () => {
+test('lists the home page, the Notes and Tags listings, each Note with its Tags, each Tag with Notes with its title, and each Side Project, with their prompts, languages, document titles and listed Notes', async () => {
   const dir = await fakeFolder({
     'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [un-libro-al-mes]\n---\n',
     'notes/hola.md': '---\ntitle: Hola\ndate: 2026-09-01\n---\n',
@@ -13,7 +13,16 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
 
   assert.deepEqual(await readExpectedPages(dir, 'es'), [
     { url: '/', prompt: '~ $ whoami', siteLang: 'es', documentTitle: 'Alex Sobrino' },
-    { url: '/notes/', prompt: '~/notes $ ls', siteLang: 'es', documentTitle: 'Notas · Alex Sobrino' },
+    {
+      url: '/notes/',
+      prompt: '~/notes $ ls',
+      siteLang: 'es',
+      documentTitle: 'Notas · Alex Sobrino',
+      listedNotes: [
+        { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' },
+        { id: 'hola', date: new Date('2026-09-01'), url: '/notes/hola/' },
+      ],
+    },
     {
       url: '/notes/hola/',
       prompt: '~/notes $ cat hola',
@@ -45,6 +54,7 @@ test('lists the home page, the Notes and Tags listings, each Note with its Tags,
       siteLang: 'es',
       documentTitle: 'Un libro al mes · Alex Sobrino',
       title: 'Un libro al mes',
+      listedNotes: [{ id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' }],
     },
     {
       url: '/side-projects/sub9bar/',
@@ -132,6 +142,10 @@ test('gives a Tag with no Notes no page, and a Tag with several Notes one page',
       siteLang: 'es',
       documentTitle: 'Un libro al mes · Alex Sobrino',
       title: 'Un libro al mes',
+      listedNotes: [
+        { id: 'otro', date: new Date('2026-10-03'), url: '/notes/otro/' },
+        { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' },
+      ],
     },
   ]);
 });
@@ -154,7 +168,14 @@ test('lists a non-ASCII slug as the build names its folder', async () => {
       tags: [{ name: 'Año', url: '/notes/tags/año/' }],
       note: { id: 'año', date: new Date('2026-10-02') },
     },
-    { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', documentTitle: 'Año · Alex Sobrino', title: 'Año' },
+    {
+      url: '/notes/tags/año/',
+      prompt: '~/notes/tags/año $ ls',
+      siteLang: 'es',
+      documentTitle: 'Año · Alex Sobrino',
+      title: 'Año',
+      listedNotes: [{ id: 'año', date: new Date('2026-10-02'), url: '/notes/año/' }],
+    },
   ]);
 });
 
@@ -203,5 +224,40 @@ test("gives every page its document title: the Note's title, the Side Project's 
     { url: '/notes/tags/', documentTitle: 'Etiquetas · Alex Sobrino' },
     { url: '/notes/tags/libro/', documentTitle: 'Un libro al mes · Alex Sobrino' },
     { url: '/side-projects/sub9bar/', documentTitle: 'Sub9bar · Alex Sobrino' },
+  ]);
+});
+
+test('gives the Notes listing every Note and each Tag page its Notes, newest first, each with its page URL', async () => {
+  const dir = await fakeFolder({
+    'notes/reto.md': '---\ntitle: Reto\ndate: 2026-10-02\ntags: [libro, libro]\n---\n',
+    'notes/hola.md': '---\ntitle: Hola\ndate: 2026-08-01\n---\n',
+    'notes/etica.md': '---\ntitle: Ética\ndate: 2026-11-01\ntags: [zen, libro]\n---\n',
+    'tags.yml': 'libro:\n  name: Un libro al mes\nzen:\n  name: Zen\nsin-notas:\n  name: Sin notas\n',
+  });
+
+  const listings = (await readExpectedPages(dir, 'es')).map(({ url, listedNotes }) => ({ url, listedNotes }));
+
+  assert.deepEqual(listings, [
+    { url: '/', listedNotes: undefined },
+    {
+      url: '/notes/',
+      listedNotes: [
+        { id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' },
+        { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' },
+        { id: 'hola', date: new Date('2026-08-01'), url: '/notes/hola/' },
+      ],
+    },
+    { url: '/notes/etica/', listedNotes: undefined },
+    { url: '/notes/hola/', listedNotes: undefined },
+    { url: '/notes/reto/', listedNotes: undefined },
+    { url: '/notes/tags/', listedNotes: undefined },
+    {
+      url: '/notes/tags/libro/',
+      listedNotes: [
+        { id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' },
+        { id: 'reto', date: new Date('2026-10-02'), url: '/notes/reto/' },
+      ],
+    },
+    { url: '/notes/tags/zen/', listedNotes: [{ id: 'etica', date: new Date('2026-11-01'), url: '/notes/etica/' }] },
   ]);
 });
