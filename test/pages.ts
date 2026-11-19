@@ -123,6 +123,25 @@ export function findTagListProblems(expected: ExpectedPage[], build: Build): Pag
   return problems;
 }
 
+/** Every expected Tag page in the build whose title is missing or isn't its Tag's name. A page not in the build is left to findMissingPages. */
+export function findTagTitleProblems(expected: ExpectedPage[], build: Build): PageProblem[] {
+  const problems: PageProblem[] = [];
+  for (const { url: page, title: expectedTitle } of expected) {
+    const html = build.pages.get(page);
+    if (expectedTitle === undefined || html === undefined) continue;
+    const title = html.querySelector('.page-title');
+    if (title === null) {
+      problems.push({ page, message: `no title, expected "${expectedTitle}"` });
+      continue;
+    }
+    const actual = textOf(title);
+    if (actual !== expectedTitle) {
+      problems.push({ page, message: `title reads "${actual}", expected "${expectedTitle}"` });
+    }
+  }
+  return problems;
+}
+
 /** Tag names as a problem names them: `Tags "A", "B"`, or `no Tags`. */
 function describeTags(names: string[]): string {
   return names.length === 0 ? 'no Tags' : `Tags ${names.map((name) => `"${name}"`).join(', ')}`;

@@ -10,6 +10,7 @@ import {
   findNoteTagProblems,
   findPromptProblems,
   findTagListProblems,
+  findTagTitleProblems,
 } from './pages.ts';
 
 /** A prompt line as PromptBar renders it: `~/notes $` is the sign, `ls` the command. */
@@ -401,5 +402,54 @@ test('reports a Tag that does not link to its own Tag page', async () => {
     { page: '/notes/tags/', message: '"Ética" links to /notes/tags/zen/, which is not its Tag page' },
     { page: '/notes/tags/', message: '"Un libro al mes" links to /notes/tags/nada/, which is not its Tag page' },
     { page: '/notes/tags/', message: '"Zen · 1" has no link' },
+  ]);
+});
+
+/** A Tag page as it renders its title: the Tag's name as the page heading. */
+function tagPage(title: string): string {
+  return `<html lang="es"><body><main><h1 class="page-title">${title}</h1><ul></ul></main></body></html>`;
+}
+
+/** Two Tag pages, one with a non-ASCII slug, and the Tags listing, whose heading is no Tag's name. */
+const tagTitlePages: ExpectedPage[] = [
+  { url: '/notes/tags/', prompt: '~/notes/tags $ ls', siteLang: 'es', tagRows: [] },
+  { url: '/notes/tags/año/', prompt: '~/notes/tags/año $ ls', siteLang: 'es', title: 'Año' },
+  { url: '/notes/tags/un-libro-al-mes/', prompt: '~/notes/tags/un-libro-al-mes $ ls', siteLang: 'es', title: 'Un libro al mes' },
+];
+
+test("accepts Tag pages titled with their Tag's name, leaving other pages' headings alone", async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/index.html': tagPage('Etiquetas'),
+      'notes/tags/año/index.html': tagPage('Año'),
+      'notes/tags/un-libro-al-mes/index.html': tagPage('Un libro al mes'),
+    }),
+  );
+
+  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), []);
+});
+
+test("reports a Tag page whose title isn't its Tag's name, naming the page", async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/año/index.html': tagPage('Un libro al mes'),
+      'notes/tags/un-libro-al-mes/index.html': tagPage('Un  libro\n al mes'),
+    }),
+  );
+
+  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
+    { page: '/notes/tags/año/', message: 'title reads "Un libro al mes", expected "Año"' },
+  ]);
+});
+
+test('reports a Tag page with no title, leaving pages not in the build to the missing-page check', async () => {
+  const build = await readBuild(
+    await fakeFolder({
+      'notes/tags/año/index.html': '<html lang="es"><body><main><ul></ul></main></body></html>',
+    }),
+  );
+
+  assert.deepEqual(findTagTitleProblems(tagTitlePages, build), [
+    { page: '/notes/tags/año/', message: 'no title, expected "Año"' },
   ]);
 });
