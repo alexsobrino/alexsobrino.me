@@ -18,4 +18,4 @@ Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agent
 
 ### New Note
 
-To start a Note from an idea, follow `.claude/skills/new-note/SKILL.md`.
+To start a Note from an idea or a draft, follow `.claude/skills/new-note/SKILL.md`.
